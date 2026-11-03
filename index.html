@@ -6,6 +6,7 @@
   <title>Stream TV Nepal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/icon.png">
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
     tailwind.config = { theme: { extend: {
@@ -78,11 +79,8 @@
       </div>
 
       <div class="absolute right-8 top-8 hidden lg:flex flex-col items-end opacity-80">
-        <div class="flex items-center gap-3 bg-[#111827]/80 backdrop-blur-md px-5 py-2.5 rounded-xl border border-white/10 shadow-xl">
-          <i class="fa-solid fa-play-circle text-brand-500 text-2xl"></i>
           <div>
-            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">StreamTV</p>
-            <p class="text-sm font-black text-white leading-none tracking-wide">ORIGINALS</p>
+           
           </div>
         </div>
       </div>
@@ -455,5 +453,43 @@
       if (e.key === 'Escape' && !playerModal.classList.contains('hidden')) closePlayer();
     });
   </script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
 </body>
 </html>
