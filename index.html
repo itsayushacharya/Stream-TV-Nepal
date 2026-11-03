@@ -24,9 +24,76 @@
     .nav-item.active { color: #3b82f6; border-bottom-color: #3b82f6; }
     #playerModal { transition: opacity .3s ease, visibility .3s ease; }
     .text-glow { text-shadow: 0 0 20px rgba(255,255,255,.1); }
+
+    /* Splash screen */
+    #splashScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #0b0f19;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+      opacity: 1;
+      visibility: visible;
+    }
+    #splashScreen.splash-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    @keyframes splashPulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.06); opacity: 1; }
+    }
+    #splashScreen img {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      border-radius: 20px;
+      animation: splashPulse 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 25px rgba(37,99,235,0.45));
+    }
+    #splashScreen .splash-title {
+      font-size: 1.75rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    #splashScreen .splash-loader {
+      width: 180px;
+      height: 4px;
+      background: #1e293b;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    #splashScreen .splash-loader span {
+      display: block;
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, #2563eb, #60a5fa);
+      border-radius: 9999px;
+      animation: splashLoad 1.2s ease-in-out infinite;
+    }
+    @keyframes splashLoad {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(350%); }
+    }
   </style>
 </head>
 <body class="h-full overflow-y-auto antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- SPLASH SCREEN -->
+  <div id="splashScreen">
+    <img src="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png" alt="Stream TV Nepal" />
+    <div class="splash-title text-center">
+      <span class="text-blue-500">Stream</span><span class="text-white">TV Nepal</span>
+    </div>
+    <div class="splash-loader"><span></span></div>
+  </div>
 
   <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-[#0b0f19]/90 backdrop-blur-md border-b border-slate-800">
@@ -47,12 +114,7 @@
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
             <input type="text" id="searchInput" placeholder="Search channels..." class="bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-4 py-1.5 focus:outline-none focus:border-brand-500 w-48 transition-all focus:w-64 placeholder-slate-500 text-white" oninput="filterChannels()">
           </div>
-          <button class="hover:text-white transition hidden sm:block"><i class="fa-regular fa-bookmark text-lg"></i></button>
-          <button class="hover:text-white transition relative hidden sm:block">
-            <i class="fa-regular fa-bell text-lg"></i>
-            <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0b0f19]"></span>
-          </button>
-          <button class="hover:text-white transition"><i class="fa-regular fa-user text-lg"></i></button>
+          <!-- Removed bookmark, bell, and user icons here -->
         </div>
       </div>
     </div>
@@ -170,8 +232,28 @@
   </div>
 
   <script>
+    // ===================== SPLASH SCREEN =====================
+    (function initSplash() {
+      const splash = document.getElementById('splashScreen');
+      // Only show once per browser session
+      if (sessionStorage.getItem('stn_splash_shown')) {
+        splash.classList.add('splash-hidden');
+        return;
+      }
+      sessionStorage.setItem('stn_splash_shown', '1');
+
+      // Hide splash after a short delay (or when page fully loads)
+      const hideSplash = () => {
+        setTimeout(() => splash.classList.add('splash-hidden'), 900);
+      };
+      if (document.readyState === 'complete') hideSplash();
+      else window.addEventListener('load', hideSplash);
+
+      // Safety fallback in case 'load' never fires
+      setTimeout(() => splash.classList.add('splash-hidden'), 3500);
+    })();
+
     // ===================== HERO SLIDER =====================
-    // Add as many slides as you want. Leave link: '' for no link.
     const heroSlides = [
       // { img: 'YOUR_IMAGE_URL', link: 'YOUR_LINK' },
     ];
