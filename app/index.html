@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#0b0f19] text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Stream TV Nepal</title>
+
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="manifest" href="manifest.json" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: { brand: { 500: '#2563eb', 600: '#1d4ed8' }, dark: '#0b0f19' },
+      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+    } } }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    .no-sb { scrollbar-width: none; -ms-overflow-style: none; }
+    .no-sb::-webkit-scrollbar { display: none; }
+
+    /* ============ ANDROID APP FEEL ============ */
+    html, body {
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      background: #0b0f19;
+    }
+    input, textarea { user-select: text; -webkit-user-select: text; }
+    img { -webkit-user-drag: none; }
+
+    /* Safe area (notch + gesture bar) */
+    .app-header { padding-top: env(safe-area-inset-top); }
+    .bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 6px); }
+    main.page {
+      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+
+    /* Card tap feedback */
+    .channel-card:active, .row-card:active {
+      transform: scale(0.95);
+      transition: transform .08s ease;
+    }
+    .row-card { transition: transform .15s ease; }
+
+    /* Hide scrollbar on horizontal rows */
+    .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
+    .hscroll > * { scroll-snap-align: start; }
+
+    /* Splash */
+    #splashScreen {
+      position: fixed; inset: 0; z-index: 9999; background: #0b0f19;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 1.5rem;
+      transition: opacity .5s ease, visibility .5s ease;
+    }
+    #splashScreen.splash-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    @keyframes splashPulse {
+      0%, 100% { transform: scale(1); opacity: .9; }
+      50% { transform: scale(1.06); opacity: 1; }
+    }
+    #splashScreen img {
+      width: 110px; height: 110px; object-fit: contain;
+      border-radius: 22px; animation: splashPulse 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 25px rgba(37,99,235,.45));
+    }
+    #splashScreen .splash-title { font-size: 1.6rem; font-weight: 900; letter-spacing: -.02em; }
+    #splashScreen .splash-loader {
+      width: 160px; height: 4px; background: #1e293b;
+      border-radius: 9999px; overflow: hidden; margin-top: .5rem;
+    }
+    #splashScreen .splash-loader span {
+      display: block; height: 100%; width: 40%;
+      background: linear-gradient(90deg, #2563eb, #60a5fa);
+      border-radius: 9999px; animation: splashLoad 1.2s ease-in-out infinite;
+    }
+    @keyframes splashLoad {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(350%); }
+    }
+
+    /* Fullscreen player */
+    #playerModal { transition: opacity .25s ease; }
+
+    /* Bottom nav active state */
+    .bnav-item { color: #64748b; transition: color .15s ease; }
+    .bnav-item.active { color: #3b82f6; }
+    .bnav-item.active i { transform: translateY(-1px); }
+    .bnav-item i { transition: transform .15s ease; }
+
+    /* Search overlay (mobile) */
+    #searchOverlay { transition: opacity .2s ease; }
+  </style>
+</head>
+<body class="h-full antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- SPLASH -->
+  <div id="splashScreen">
+    <img src="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png" alt="Stream TV Nepal" />
+    <div class="splash-title text-center">
+      <span class="text-blue-500">Stream</span><span class="text-white">TV Nepal</span>
+    </div>
+    <div class="splash-loader"><span></span></div>
+  </div>
+
+  <!-- TOP APP BAR (Android style) -->
+  <header class="app-header sticky top-0 z-40 bg-[#0b0f19]/95 backdrop-blur-md border-b border-slate-800">
+    <div class="flex items-center justify-between h-14 px-4">
+      <div class="flex items-center font-black text-xl tracking-tight">
+        <span class="text-blue-500">Stream</span><span class="text-white">TV</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button onclick="toggleSearch()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search bar (hidden until tap) -->
+    <div id="searchBar" class="hidden px-4 pb-3">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+        <input type="text" id="searchInput" placeholder="Search channels..." oninput="filterChannels()"
+          class="w-full bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-10 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white">
+        <button onclick="toggleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main id="homeMain" class="page relative z-10">
+
+    <!-- HERO (compact mobile banner) -->
+    <section id="heroSection" class="relative mx-3 mt-3 rounded-2xl overflow-hidden bg-slate-900 border border-slate-800">
+      <div class="absolute inset-0">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBxnUkh7jJ8aUJjuMHL4Uo-tBVsvSC-Bv3rxH8nB_qF9hyEmEG8CItsNAJ&s=10"
+          class="w-full h-full object-cover object-center opacity-40" alt="" />
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-[#0b0f19]/70 to-transparent"></div>
+      </div>
+      <div class="relative p-5 pt-16">
+        <p class="text-[10px] font-bold tracking-widest text-blue-400 mb-1">STREAM TV NEPAL</p>
+        <h1 class="text-2xl font-black text-white leading-tight mb-1">
+          Your Screen, Your Stream
+        </h1>
+        <p class="text-sm text-slate-300 mb-4">Live channels, movies & shows — all in one place.</p>
+        <div class="flex gap-2">
+          <button onclick="scrollToSection('news-section')"
+            class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-full text-sm shadow-lg shadow-brand-500/30">
+            <i class="fa-solid fa-play mr-1.5"></i> Watch Now
+          </button>
+          <button onclick="openLive()"
+            class="flex-1 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-bold py-2.5 rounded-full text-sm border border-white/10">
+            <i class="fa-solid fa-tv mr-1.5"></i> Live TV
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHANNEL SECTIONS (horizontal scroll rows) -->
+    <section id="news-section" class="mt-6">
+      <div class="flex items-center justify-between px-4 mb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span class="w-1 h-4 bg-brand-500 rounded-full"></span> News
+        </h3>
+        <button onclick="openLive()" class="text-xs text-blue-400 font-semibold">See all <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></button>
+      </div>
+      <div id="news-grid" class="hscroll no-sb flex gap-3 px-4 pb-2"></div>
+    </section>
+
+    <section id="sports-section" class="mt-6">
+      <div class="flex items-center justify-between px-4 mb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span class="w-1 h-4 bg-brand-500 rounded-full"></span> Sports
+        </h3>
+        <button onclick="openSport()" class="text-xs text-blue-400 font-semibold">See all <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></button>
+      </div>
+      <div id="sports-grid" class="hscroll no-sb flex gap-3 px-4 pb-2"></div>
+    </section>
+
+    <section id="entertainment-section" class="mt-6">
+      <div class="flex items-center justify-between px-4 mb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span class="w-1 h-4 bg-brand-500 rounded-full"></span> Entertainment
+        </h3>
+      </div>
+      <div id="entertainment-grid" class="hscroll no-sb flex gap-3 px-4 pb-2"></div>
+    </section>
+
+    <!-- Spacer for bottom nav -->
+    <div class="h-6"></div>
+  </main>
+
+  <!-- FULLSCREEN PLAYER (mobile-immersive) -->
+  <div id="playerModal" class="fixed inset-0 z-50 bg-black hidden opacity-0">
+    <!-- Video area -->
+    <div class="absolute inset-0 flex items-center justify-center bg-black">
+      <video id="videoPlayer" class="w-full h-full object-contain" controls autoplay playsinline></video>
+
+      <div id="loadingOverlay" class="absolute inset-0 flex items-center justify-center bg-black/40 z-10 pointer-events-none">
+        <div class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+      </div>
+
+      <div id="errorOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0b0f19]/95 hidden text-center p-6 z-10">
+        <i class="fa-solid fa-triangle-exclamation text-red-500 text-4xl mb-3"></i>
+        <h3 class="text-white font-bold text-lg mb-1">Stream Unavailable</h3>
+        <p id="errorMessage" class="text-slate-400 text-xs max-w-xs mb-4"></p>
+        <button onclick="retryStream()" class="bg-brand-500 text-white px-6 py-2 rounded-full text-sm font-semibold">
+          <i class="fa-solid fa-rotate-right mr-1"></i> Retry
+        </button>
+      </div>
+    </div>
+
+    <!-- Top overlay: back + channel name -->
+    <div class="absolute top-0 left-0 right-0 z-20 p-3 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent"
+      style="padding-top: calc(env(safe-area-inset-top) + 12px);">
+      <button onclick="closePlayer()" class="w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white shrink-0">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <div class="min-w-0 flex-1">
+        <h2 id="modalChannelTitle" class="text-white font-bold text-sm truncate">Channel</h2>
+        <p class="text-[11px] text-slate-300">On Now</p>
+      </div>
+    </div>
+
+    <!-- Bottom panel: channel switcher (collapsible) -->
+    <div id="channelPanel" class="absolute bottom-0 left-0 right-0 z-20 bg-[#0b0f19]/95 backdrop-blur border-t border-slate-800 rounded-t-2xl transition-transform duration-300"
+      style="padding-bottom: env(safe-area-inset-bottom);">
+      <div class="flex items-center justify-center py-2" onclick="togglePanel()">
+        <div class="w-10 h-1 bg-slate-600 rounded-full"></div>
+      </div>
+      <div class="px-3 pb-3">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="flex gap-1.5 overflow-x-auto no-sb flex-1">
+            <button data-f="all" class="ptab px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">All</button>
+            <button data-f="news" class="ptab px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">News</button>
+            <button data-f="sports" class="ptab px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Sports</button>
+            <button data-f="entertainment" class="ptab px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Entertainment</button>
+          </div>
+        </div>
+        <div id="panelGrid" class="hscroll no-sb flex gap-2 overflow-x-auto pb-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV (Android style) -->
+  <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-slate-800">
+    <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
+      <button onclick="showView('home')" data-nav="home" class="bnav-item active flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-house text-lg"></i>
+        <span class="text-[10px] font-semibold">Home</span>
+      </button>
+      <button onclick="openLive()" data-nav="live" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-tv text-lg"></i>
+        <span class="text-[10px] font-semibold">Live</span>
+      </button>
+      <a href="movies.html" data-nav="movies" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-film text-lg"></i>
+        <span class="text-[10px] font-semibold">Movies</span>
+      </a>
+      <a href="series.html" data-nav="series" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-layer-group text-lg"></i>
+        <span class="text-[10px] font-semibold">Series</span>
+      </a>
+    </div>
+  </nav>
+
+  <script>
+    // ===================== SPLASH =====================
+    (function initSplash() {
+      const splash = document.getElementById('splashScreen');
+      if (sessionStorage.getItem('stn_splash_shown')) { splash.classList.add('splash-hidden'); return; }
+      sessionStorage.setItem('stn_splash_shown', '1');
+      const hide = () => setTimeout(() => splash.classList.add('splash-hidden'), 700);
+      if (document.readyState === 'complete') hide(); else window.addEventListener('load', hide);
+      setTimeout(() => splash.classList.add('splash-hidden'), 3000);
+    })();
+
+    // ===================== ANDROID BACK =====================
+    (function androidBack() {
+      let pushed = false;
+      window.__androidGuard = {
+        pushGuard() { if (!pushed) { history.pushState({ g: 1 }, ''); pushed = true; } },
+        popGuard() { if (pushed) { history.back(); pushed = false; } }
+      };
+      window.addEventListener('popstate', () => {
+        pushed = false;
+        const pm = document.getElementById('playerModal');
+        if (pm && !pm.classList.contains('hidden') && getComputedStyle(pm).opacity !== '0') {
+          if (typeof closePlayer === 'function') closePlayer();
+          return;
+        }
+      });
+    })();
+
+    // ===================== SEARCH =====================
+    function toggleSearch() {
+      const bar = document.getElementById('searchBar');
+      bar.classList.toggle('hidden');
+      if (!bar.classList.contains('hidden')) document.getElementById('searchInput').focus();
+    }
+
+    function scrollToSection(id) {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ===================== CHANNELS =====================
+    const channels = [
+      { id: "kantipur-tv", name: "Kantipur TV HD", categoryKey: "news", logoText: "KTV", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/17/Kantipur_TV_HD.png",
+        url: "https://ktvhdsg.ekantipur.com:8443/high_quality_85840165/hd/kantipurtv/hd_1080/chunks.m3u8?nimblesessionid=13647611" },
+      { id: "nepal-tv-hd", name: "Nepal TV HD", categoryKey: "news", logoText: "NTV HD", badge: "HD",
+        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoWf6bQefS3knKroJStvD4dW-rZ_ooVFs0G3Mk6EjwL_ewFLzrQ9fQrvNI&s=10",
+        url: "https://ott-wlink-01.nettv.com.np/ott_abr/ntvnepalhdabr.stream/ottlive/ottNTVNEPAL480.stream/chunks.m3u8?nimblesessionid=62615788&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDExOjA5OjE0IEFNJmhhc2hfdmFsdWU9SjZzdUVDWlBjUHhYQ2czVXhmMVhpUT09JnZhbGlkbWludXRlcz02MCZpZD1leUowZVhBaU9pSktWMVFpTENKaGJHY2lPaUpTVXpJMU5pSjkuZXlKbGVIQWlPakUzT1RNM09USTFOelVzSW5OMVluTmpjbWxpWlhKZmFXUWlPaUkwTlRBMk1EZ3hJaXdpYzNSaUlqb2laMnhmTVRFME9UUXdNekkxTWpZNE5EQXlNVE01TVRVMUxURXdOeUo5LkMzLWZ1bDFyR3hYOVVlMXRCYTZmaGZ0X3plTkNCUjA1V3BHdVdvZzdNVnM=" },
+      { id: "ntv-news-hd", name: "NTV News HD", categoryKey: "news", logoText: "NTV News", badge: "HD",
+        logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/43-png",
+        url: "https://ott-wlink-01.nettv.com.np/ott_abr/ntvnewshdabr.stream/ottlive/ottNTVNEWS480.stream/chunks.m3u8?nimblesessionid=62615922&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDExOjA5OjE0IEFNJmhhc2hfdmFsdWU9SjZzdUVDWlBjUHhYQ2czVXhmMVhpUT09JnZhbGlkbWludXRlcz02MCZpZD1leUowZVhBaU9pSktWMVFpTENKaGJHY2lPaUpTVXpJMU5pSjkuZXlKbGVIQWlPakUzT1RNM09USTFOelVzSW5OMVluTmpjbWxpWlhKZmFXUWlPaUkwTlRBMk1EZ3hJaXdpYzNSaUlqb2laMnhmTVRFME9UUXdNekkxTWpZNE5EQXlNVE01TVRVMUxURXdOeUo5LkMzLWZ1bDFyR3hYOVVlMXRCYTZmaGZ0X3plTkNCUjA1V3BHdVdvZzdNVnM=" },
+      { id: "ntv-plus", name: "NTV Plus", categoryKey: "news", logoText: "NTV World", badge: "HD",
+        logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/44-png",
+        url: "https://9MTEvMS8OS5leUpsZUhBaU9qRTNPVE0yTXpVM05qWXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuTjJpZkdfRUQzc1hEMzR1dHpIOXE5dktBZEk1NkUzQ3IzTzZkSjY0Qkd4VQ==" },
+      { id: "Makalu-Tv", name: "MAKALU TV HD", categoryKey: "news", logoText: "MTV", badge: "HD",
+        logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/2021-01-31-131827-60165d477593e-png",
+        url: "https://ott-wlink-01.nettv.com.np/ottlivestream/netMakaluTvHD.stream/chunks.m3u8?nimblesessionid=62583770&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDc6MzU6MjIgQU0maGFzaF92YWx1ZT03UkRUYXcwTVcrQjk1RnNhTzFUeUVRPT0mdmFsaWRtaW51dGVzPTYwJmlkPWV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSlNVekkxTmlKOS5leUpsZUhBaU9qRTNPVE0zT1RJMU56VXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuQzMtZnVsMXJHeFg5VWUxdEJhNmZoZnRfemVOQ0JSMDVXcEd1V29nN01Wcw==" },
+      { id: "Image-HD", name: "Image HD", categoryKey: "news", logoText: "Image HD", badge: "LIVE",
+        logoUrl: "https://yt3.googleusercontent.com/A-htnNKtOl-rjWxCT_6L2ml26w4XuFFNEC7LUSuDPHT9DxKkblCBh374n2qUz-TCIIzlrBLlRKs=s900-c-k-c0x00ffffff-no-rj",
+        url: "https://ott-wlink-01.nettv.com.np/ott_abr/imageabr.stream/ottlive/ottIMAGE360.stream/chunks.m3u8?nimblesessionid=62582430&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDc6MzU6MjIgQU0maGFzaF92YWx1ZT03UkRUYXcwTVcrQjk1RnNhTzFUeUVRPT0mdmFsaWRtaW51dGVzPTYwJmlkPWV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSlNVekkxTmlKOS5leUpsZUhBaU9qRTNPVE0zT1RJMU56VXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuQzMtZnVsMXJHeFg5VWUxdEJhNmZoZnRfemVOQ0JSMDVXcEd1V29nN01Wcw==" },
+      { id: "Space-4K", name: "Space 4K", categoryKey: "news", logoText: "Prime HD", badge: "HD",
+        logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/2022-06-09-174601-62a1e0fd0eeca-pngg",
+        url: "https://ott-wlink-01.nettv.com.np/ottlivestream/netSPACE4K.stream/chunks.m3u8?nimblesessionid=62582680&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDc6MzU6MjIgQU0maGFzaF92YWx1ZT03UkRUYXcwTVcrQjk1RnNhTzFUeUVRPT0mdmFsaWRtaW51dGVzPTYwJmlkPWV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSlNVekkxTmlKOS5leUpsZUhBaU9qRTNPVE0zT1RJMU56VXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuQzMtZnVsMXJHeFg5VWUxdEJhNmZoZnRfemVOQ0JSMDVXcEd1V29nN01Wcw==" },
+      { id: "Mountain-TV-HD", name: "Mountain TV HD", categoryKey: "news", logoText: "MTV", badge: "HD",
+        logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/2021-05-27-115215-60af3713dbed3-png",
+        url: "https://ott-wlink-01.nettv.com.np/ott_abr/mountainabr.stream/ottlive/netMOUNTAINHIGH.stream/chunks.m3u8?nimblesessionid=62583119&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDc6MzU6MjIgQU0maGFzaF92YWx1ZT03UkRUYXcwTVcrQjk1RnNhTzFUeUVRPT0mdmFsaWRtaW51dGVzPTYwJmlkPWV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSlNVekkxTmlKOS5leUpsZUhBaU9qRTNPVE0zT1RJMU56VXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuQzMtZnVsMXJHeFg5VWUxdEJhNmZoZnRfemVOQ0JSMDVXcEd1V29nN01Wcw==" },
+      { id: "star-plus", name: "Star Plus", categoryKey: "entertainment", logoText: "SP", badge: "HD",
+        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTn2-m9-_smm4H59l5-7HpMb0i80SFTJ8LQTF8IgoaFPw&s=10",
+        url: "https://d1rc86nwwc9fag.cloudfront.net/260723/starplusuk_2500/chunklist.m3u8" },
+      { id: "colours-hd", name: "Colours HD", categoryKey: "entertainment", logoText: "CHD", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/19/Colors_TV_logo.svg",
+        url: "https://da86m1sqpm3o0.cloudfront.net/28072023/smil:colorsme.smil/chunklist_b896000.m3u8" },
+      { id: "star-bharat", name: "Star Bharat", categoryKey: "entertainment", logoText: "SB", badge: "SD/HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/en/a/a7/Star_Bharat_Logo.png",
+        url: "https://d1taaads3ztvmu.cloudfront.net/120723/smil:lifeokuk.smil/chunklist_b896000.m3u8" },
+      { id: "and-tv-hd", name: "&TV HD", categoryKey: "entertainment", logoText: "&TV", badge: "HD",
+        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTwA4TUz7FLhcMAB_Oby0_6fPz4DK9hwr2Xwxb5KeVSNQ&s=10",
+        url: "https://3f56f997.wurl.com/manifest/f36d25e7e52f1ba8d7e56eb859c636563214f541/U2Ftc3VuZy1nYl9BbmRUVl9ITFM/62ee2b4c-539c-4838-abb7-b105ad18061d/5.m3u8" },
+      { id: "dd-sports-hd", name: "DD Sports HD", categoryKey: "sports", logoText: "DDS", badge: "HD",
+        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIp1mbSgFtwwA0HxPug2c-yCdWIoygfy822UaKHcsIxw&s",
+        url: "https://mumbai-edge.smartplaytv.in/DDSportsHD/tracks-v1a1/mono.m3u8" },
+      { id: "b4umovies", name: "B4U Movies", categoryKey: "entertainment", logoText: "B4U", badge: "HD",
+        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEnzxdP8-VmS1m5nxukY7H-EI3TiuHbD7D7I-CZQYGkg&s",
+        url: "https://streams.tangotv.in/B4UMOVIES/ORIGIN/index.m3u8" }
+    ];
+
+    // ===================== RENDER ROWS =====================
+    const grids = {
+      news: document.getElementById('news-grid'),
+      sports: document.getElementById('sports-grid'),
+      entertainment: document.getElementById('entertainment-grid')
+    };
+
+    function rowCard(ch, i) {
+      return `
+        <div onclick="openPlayer(${i})" class="row-card shrink-0 w-[130px] cursor-pointer bg-[#161b26] rounded-xl overflow-hidden border border-slate-800 relative">
+          ${ch.badge ? `<div class="absolute top-1 right-1 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">${ch.badge}</div>` : ''}
+          <div class="aspect-square bg-white flex items-center justify-center p-4">
+            ${ch.logoUrl
+              ? `<img src="${ch.logoUrl}" class="max-h-full object-contain" alt="${ch.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><span class="hidden text-slate-900 font-bold text-base text-center">${ch.logoText}</span>`
+              : `<span class="text-slate-900 font-bold text-base text-center">${ch.logoText}</span>`}
+          </div>
+          <div class="p-2">
+            <p class="text-[11px] font-semibold text-slate-200 truncate">${ch.name}</p>
+          </div>
+        </div>`;
+    }
+
+    function renderChannels() {
+      const html = { news: '', sports: '', entertainment: '' };
+      channels.forEach((ch, i) => { html[ch.categoryKey] += rowCard(ch, i); });
+      for (const k in grids) grids[k].innerHTML = html[k];
+    }
+    renderChannels();
+
+    function filterChannels() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('.row-card').forEach(c => {
+        c.style.display = c.querySelector('p').textContent.toLowerCase().includes(q) ? 'block' : 'none';
+      });
+    }
+
+    // ===================== PLAYER =====================
+    const playerModal = document.getElementById('playerModal');
+    const video = document.getElementById('videoPlayer');
+    const modalChannelTitle = document.getElementById('modalChannelTitle');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const errorOverlay = document.getElementById('errorOverlay');
+    const errorMessage = document.getElementById('errorMessage');
+    const panelGrid = document.getElementById('panelGrid');
+
+    let hls = null, currentUrl = '', currentIndex = -1, panelFilter = 'all';
+    let panelOpen = true;
+
+    function togglePanel() {
+      panelOpen = !panelOpen;
+      const panel = document.getElementById('channelPanel');
+      panel.style.transform = panelOpen ? 'translateY(0)' : 'translateY(calc(100% - 28px))';
+    }
+
+    function renderPanel() {
+      panelGrid.innerHTML = channels
+        .filter(c => panelFilter === 'all' || c.categoryKey === panelFilter)
+        .map((c, i) => {
+          const realIdx = channels.indexOf(c);
+          return `
+            <button onclick="playByIndex(${realIdx})"
+              class="shrink-0 w-20 rounded-lg bg-white flex items-center justify-center p-2 border-2 ${realIdx === currentIndex ? 'border-blue-500' : 'border-transparent'}">
+              ${c.logoUrl
+                ? `<img src="${c.logoUrl}" class="max-w-full max-h-10 object-contain" onerror="this.outerHTML='<span class=\\'text-slate-900 font-bold text-[11px] text-center\\'>${c.logoText}</span>'" />`
+                : `<span class="text-slate-900 font-bold text-[11px] text-center">${c.logoText}</span>`}
+            </button>`;
+        }).join('');
+    }
+
+    function setFilter(f) {
+      panelFilter = f;
+      document.querySelectorAll('.ptab').forEach(b => {
+        const on = b.dataset.f === f;
+        b.className = 'ptab px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ' +
+          (on ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-300');
+      });
+      renderPanel();
+    }
+    document.querySelectorAll('.ptab').forEach(b => b.onclick = () => setFilter(b.dataset.f));
+
+    function playByIndex(i) {
+      const c = channels[i];
+      currentIndex = i;
+      currentUrl = c.url;
+      modalChannelTitle.textContent = c.name;
+      renderPanel();
+      initStream(c.url);
+    }
+
+    function openPlayer(i) {
+      playerModal.classList.remove('hidden');
+      setTimeout(() => playerModal.classList.remove('opacity-0'), 10);
+      document.body.style.overflow = 'hidden';
+      setFilter('all');
+      playByIndex(i);
+      window.__androidGuard?.pushGuard();
+    }
+
+    function closePlayer() {
+      playerModal.classList.add('opacity-0');
+      setTimeout(() => {
+        playerModal.classList.add('hidden');
+        document.body.style.overflow = '';
+        if (hls) { hls.destroy(); hls = null; }
+        video.pause(); video.removeAttribute('src'); video.load();
+      }, 250);
+    }
+
+    function initStream(url) {
+      loadingOverlay.classList.remove('hidden');
+      errorOverlay.classList.add('hidden');
+      if (hls) { hls.destroy(); hls = null; }
+
+      if (Hls.isSupported()) {
+        hls = new Hls({
+          enableWorker: true, lowLatencyMode: true,
+          manifestLoadingTimeOut: 15000, manifestLoadingMaxRetry: 3,
+          levelLoadingTimeOut: 15000, levelLoadingMaxRetry: 3,
+          fragLoadingTimeOut: 20000, fragLoadingMaxRetry: 5
+        });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          loadingOverlay.classList.add('hidden');
+          video.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (e, data) => {
+          if (!data.fatal) return;
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            if (!hls.retried) { hls.retried = true; setTimeout(() => hls.startLoad(), 2000); }
+            else showError('Network error — stream server unreachable or token expired.');
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else showError('Playback failed.');
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.onloadedmetadata = () => { loadingOverlay.classList.add('hidden'); video.play().catch(() => {}); };
+        video.onerror = () => showError('Native playback failed.');
+      } else showError('HLS not supported.');
+    }
+
+    function showError(msg) {
+      loadingOverlay.classList.add('hidden');
+      errorOverlay.classList.remove('hidden');
+      errorMessage.textContent = msg;
+    }
+    function retryStream() { if (currentUrl) initStream(currentUrl); }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !playerModal.classList.contains('hidden')) closePlayer();
+    });
+
+    // Bottom nav
+    function showView(v) {
+      document.querySelectorAll('.bnav-item[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === v));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function openLive() {
+      document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-nav="live"]')?.classList.add('active');
+      openPlayer(0);
+    }
+    function openSport() {
+      const i = channels.findIndex(c => c.categoryKey === 'sports');
+      openPlayer(Math.max(0, i));
+    }
+  </script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+</body>
+</html>
