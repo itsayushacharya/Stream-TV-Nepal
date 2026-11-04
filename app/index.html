@@ -92,7 +92,7 @@
   <div id="splashScreen">
     <img src="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png" alt="Stream TV Nepal" />
     <div class="splash-title text-center">
-      <span class="text-blue-500">Stream</span><span class="text-white">TV Nepal</span>
+      <span class="text-blue-500">Stream</span><span class="text-white">&nbsp;TV Nepal</span>
     </div>
     <div class="splash-loader"><span></span></div>
   </div>
@@ -101,7 +101,7 @@
   <header class="app-header sticky top-0 z-40 bg-[#0b0f19]/95 backdrop-blur-md border-b border-slate-800">
     <div class="flex items-center justify-between h-14 px-4">
       <div class="flex items-center font-black text-xl tracking-tight">
-        <span class="text-blue-500">Stream</span><span class="text-white">TV</span>
+        <span class="text-blue-500">Stream</span><span class="text-white">&nbsp;TV Nepal</span>
       </div>
       <div class="flex items-center gap-1">
         <button onclick="toggleSearch()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
@@ -597,6 +597,7 @@
     const btnFullscreen = document.getElementById('btnFullscreen');
 
     let hls = null, currentUrl = '', currentIndex = -1, panelFilter = 'all';
+    let loadingTimer = null;
 
     // Custom Controls
     function togglePlay() {
@@ -700,27 +701,49 @@
     }
 
     function initStream(url) {
+      // Clear any previous loading timer
+      if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
+
       loadingOverlay.classList.remove('hidden');
       errorOverlay.classList.add('hidden');
       if (hls) { hls.destroy(); hls = null; }
 
+      // Failsafe: hide spinner after 3.5s max, even if HLS is still negotiating
+      loadingTimer = setTimeout(() => {
+        loadingOverlay.classList.add('hidden');
+      }, 3500);
+
       if (Hls.isSupported()) {
         hls = new Hls({
-          enableWorker: true, lowLatencyMode: true,
-          manifestLoadingTimeOut: 15000, manifestLoadingMaxRetry: 3,
-          levelLoadingTimeOut: 15000, levelLoadingMaxRetry: 3,
-          fragLoadingTimeOut: 20000, fragLoadingMaxRetry: 5
+          enableWorker: true,
+          lowLatencyMode: true,
+
+          // --- FAST LOADING TUNING ---
+          startLevel: -1,
+          abrEwmaDefaultEstimate: 500000,
+          maxBufferLength: 10,
+          maxMaxBufferLength: 30,
+          manifestLoadingTimeOut: 8000,
+          manifestLoadingMaxRetry: 2,
+          levelLoadingTimeOut: 8000,
+          levelLoadingMaxRetry: 2,
+          fragLoadingTimeOut: 15000,
+          fragLoadingMaxRetry: 3,
+          liveSyncDurationCount: 2,
+          liveMaxLatencyDurationCount: 5
         });
         hls.loadSource(url);
         hls.attachMedia(video);
+
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
           loadingOverlay.classList.add('hidden');
           video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (e, data) => {
           if (!data.fatal) return;
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            if (!hls.retried) { hls.retried = true; setTimeout(() => hls.startLoad(), 2000); }
+            if (!hls.retried) { hls.retried = true; setTimeout(() => hls.startLoad(), 1500); }
             else showError('Network error — stream server unreachable or token expired.');
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             hls.recoverMediaError();
@@ -728,12 +751,17 @@
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
-        video.onloadedmetadata = () => { loadingOverlay.classList.add('hidden'); video.play().catch(() => {}); };
+        video.onloadedmetadata = () => {
+          if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
+          loadingOverlay.classList.add('hidden');
+          video.play().catch(() => {});
+        };
         video.onerror = () => showError('Native playback failed.');
       } else showError('HLS not supported.');
     }
 
     function showError(msg) {
+      if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
       loadingOverlay.classList.add('hidden');
       errorOverlay.classList.remove('hidden');
       errorMessage.textContent = msg;
@@ -801,5 +829,6 @@
 	}
 	// ]]>
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"87327fcf53be41f08c37151b64e8f4d9","r":1,"spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
