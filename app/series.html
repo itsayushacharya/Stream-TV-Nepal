@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#0b0f19] text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Series - Stream TV Nepal</title>
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="manifest" href="manifest.json" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: { brand: { 500: '#2563eb', 600: '#1d4ed8' } },
+      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+    } } }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    .no-sb { scrollbar-width: none; -ms-overflow-style: none; }
+    .no-sb::-webkit-scrollbar { display: none; }
+
+    html, body {
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      background: #0b0f19;
+    }
+    input { user-select: text; -webkit-user-select: text; }
+    img { -webkit-user-drag: none; }
+
+    .app-header { padding-top: env(safe-area-inset-top); }
+    .bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 6px); }
+    main.page { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+    .movie-card { transition: transform .15s ease; }
+    .movie-card:active { transform: scale(0.95); }
+
+    .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
+    .hscroll > * { scroll-snap-align: start; }
+
+    .bnav-item { color: #64748b; transition: color .15s ease; }
+    .bnav-item.active { color: #3b82f6; }
+  </style>
+</head>
+<body class="h-full antialiased selection:bg-brand-500 selection:text-white">
+
+  <header class="app-header sticky top-0 z-40 bg-[#0b0f19]/95 backdrop-blur-md border-b border-slate-800">
+    <div class="flex items-center justify-between h-14 px-4">
+      <a href="index.html" class="flex items-center font-black text-xl tracking-tight">
+        <span class="text-blue-500">Stream</span><span class="text-white">TV</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <button onclick="toggleSearch()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+    </div>
+    <div id="searchBar" class="hidden px-4 pb-3">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+        <input type="text" id="searchInput" placeholder="Search shows..." oninput="render()"
+          class="w-full bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-10 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white">
+        <button onclick="toggleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div id="rows" class="space-y-6 mt-4"></div>
+    <p id="emptyMsg" class="hidden text-center text-slate-500 py-20 text-sm">No shows found.</p>
+  </main>
+
+  <div id="detailsModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md" onclick="if(event.target===this)closeDetails()">
+    <div class="absolute bottom-0 left-0 right-0 bg-[#161b26] border-t border-slate-700 rounded-t-2xl overflow-hidden max-h-[92vh] overflow-y-auto"
+      style="padding-bottom: env(safe-area-inset-bottom);">
+      <div class="flex items-center justify-center py-2">
+        <div class="w-10 h-1 bg-slate-600 rounded-full"></div>
+      </div>
+      <button onclick="closeDetails()" class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div id="dBanner" class="h-56 bg-slate-800 bg-cover bg-center relative">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#161b26] to-transparent"></div>
+      </div>
+      <div class="p-5 -mt-10 relative">
+        <h2 id="dTitle" class="text-xl font-extrabold text-white mb-2"></h2>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400 mb-3">
+          <span id="dRating" class="text-yellow-400 font-bold"></span><span>•</span>
+          <span id="dYear"></span><span>•</span><span id="dGenre"></span>
+        </div>
+        <p id="dDesc" class="text-sm text-slate-300 leading-relaxed mb-5"></p>
+        <button id="dPlay" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-full text-sm inline-flex items-center justify-center gap-2 shadow-lg shadow-brand-500/30">
+          <i class="fa-solid fa-play"></i> Play Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="playerModal" class="fixed inset-0 z-[60] bg-black hidden">
+    <div class="absolute inset-0 flex items-center justify-center">
+      <video id="moviePlayer" class="w-full h-full hidden" controls autoplay playsinline></video>
+      <iframe id="movieFrame" class="w-full h-full hidden border-0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+      <div id="noSource" class="hidden flex-col items-center text-center p-6">
+        <i class="fa-solid fa-film text-5xl text-slate-600 mb-3"></i>
+        <p class="text-white font-bold text-lg">Not available</p>
+      </div>
+    </div>
+    <button onclick="closePlayer()" class="absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white"
+      style="top: calc(env(safe-area-inset-top) + 12px);">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+  </div>
+
+  <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-slate-800">
+    <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
+      <a href="index.html" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-house text-lg"></i><span class="text-[10px] font-semibold">Home</span>
+      </a>
+      <a href="index.html" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-tv text-lg"></i><span class="text-[10px] font-semibold">Live</span>
+      </a>
+      <a href="movies.html" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-film text-lg"></i><span class="text-[10px] font-semibold">Movies</span>
+      </a>
+      <a href="series.html" class="bnav-item active flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-layer-group text-lg"></i><span class="text-[10px] font-semibold">Series</span>
+      </a>
+    </div>
+  </nav>
+
+  <script>
+    function toggleSearch() {
+      const bar = document.getElementById('searchBar');
+      bar.classList.toggle('hidden');
+      if (!bar.classList.contains('hidden')) document.getElementById('searchInput').focus();
+    }
+
+    (function androidBack() {
+      let pushed = false;
+      window.__androidGuard = {
+        pushGuard() { if (!pushed) { history.pushState({ g: 1 }, ''); pushed = true; } },
+        popGuard() { if (pushed) { history.back(); pushed = false; } }
+      };
+      window.addEventListener('popstate', () => {
+        pushed = false;
+        const pm = document.getElementById('playerModal');
+        if (pm && !pm.classList.contains('hidden')) { closePlayer(); return; }
+        const dm = document.getElementById('detailsModal');
+        if (dm && !dm.classList.contains('hidden')) { closeDetails(); return; }
+        location.href = 'index.html';
+      });
+    })();
+
+    const contentDatabase = [
+      { id: "Musafir-Cafe", title: "Musafir Cafe", type: "series", genre: "Drama", industry: "series", rating: "7.1",
+        poster: "https://media.themoviedb.org/t/p/w600_and_h900_face/1SbKjtoRKIpVQG5iYnumnfQIqhd.jpg",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt39665097", releaseDate: "2026-07-24",
+        description: "Chander feels an undeniable connection with Sudha. Years later, he builds a new life in the hills, but memories linger." },
+      { id: "Pritam-and-Pedro", title: "Pritam and Pedro", type: "series", genre: "Crime/Comedy", industry: "series", rating: "8.3",
+        poster: "https://image.tmdb.org/t/p/w500/uA5hAexR9Xis3BzSOMKjNuYQUsj.jpg",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt28077038", releaseDate: "2026-07-03",
+        description: "A seasoned cop and a tech-savvy cop solve crimes together." },
+      { id: "A-Knight-of-the-Seven-Kingdoms", title: "A Knight of the Seven Kingdoms", type: "series", genre: "Fantasy", industry: "series", rating: "8.6",
+        poster: "https://m.media-amazon.com/images/M/MV5BYzg4M2U3YWMtMWY4MS00MzFkLTk2ZWQtOThiOGYxZDEyMGQ2XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt27497448", releaseDate: "2026-04-17",
+        description: "Ser Duncan the Tall and his squire wander Westeros a century before Game of Thrones." },
+      { id: "The-Boys", title: "The Boys S1-5", type: "series", genre: "Satire", industry: "series", rating: "8.5",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTMhlx0wpKRG9fPPwRh9rXEV2Bw71HNMJHi5q3Q5q3iOxj09T1AxeWRwcg&s=10",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt1190634", releaseDate: "2026-04-08",
+        description: "Vigilantes take down corrupt superheroes who abuse their powers." },
+      { id: "Matka-King", title: "Matka King", type: "series", genre: "Drama", industry: "series", rating: "7.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BNjg3ZmExNjctNGI3Yi00MWRlLWExYjMtODg5ZmE1Yjc4MTU2XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt16997004", releaseDate: "2026-04-17",
+        description: "A cotton trader starts a gambling game called Matka that takes Mumbai by storm." },
+      { id: "gullak", title: "Gullak S1-5", type: "series", genre: "Family/Comedy", industry: "series", rating: "9.1",
+        poster: "https://i.pinimg.com/736x/26/33/50/263350b944e1b0c5151cc9cb95b10b47.jpg",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt10530900", releaseDate: "2019-05-19",
+        description: "Relatable tales of the Mishra family in the heart of India." },
+      { id: "panchayat", title: "Panchayat S1-4", type: "series", genre: "Comedy/Drama", industry: "series", rating: "9.0",
+        poster: "https://m.media-amazon.com/images/M/MV5BNjMwYWMxNjYtY2I2NC00OWE0LTg4MmQtMmI5ZGI2NzU4ODhiXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt12004706", releaseDate: "2020-06-24",
+        description: "An engineering grad becomes secretary of a Panchayat in rural UP." },
+      { id: "taaza-khabar", title: "Taaza Khabar", type: "series", genre: "Thriller", industry: "series", rating: "8.0",
+        poster: "https://m.media-amazon.com/images/M/MV5BNjAzMDEzZmUtYjgzMy00NTYxLWJlODItYTMyZGI4YzdmZGY4XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt22014226", releaseDate: "2023-01-06",
+        description: "A sanitation worker stumbles upon magical powers." },
+      { id: "farzi", title: "Farzi", type: "series", genre: "Thriller", industry: "series", rating: "8.4",
+        poster: "https://m.media-amazon.com/images/M/MV5BNDY2OWMxNzgtZGQ4Ny00ODI3LTk3MTAtYjM4N2U4ZGI3ZGY1XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/tv/tt15477488", releaseDate: "2023-02-05",
+        description: "A gritty story set in the underbelly of modern entertainment." }
+    ];
+
+    const movies = contentDatabase.filter(m => m.type === "series").map(m => ({
+      category: 'series',
+      title: m.title,
+      year: (m.releaseDate || '').slice(0, 4) || 'N/A',
+      genre: m.genre,
+      rating: m.rating,
+      poster: m.poster,
+      desc: m.description || '',
+      url: m.streamUrl || ''
+    }));
+
+    const SECTIONS = { series: 'Web Series' };
+
+    function card(m, i) {
+      return `
+        <div onclick="openDetails(${i})" class="movie-card cursor-pointer rounded-xl overflow-hidden bg-[#161b26] border border-slate-800">
+          <div class="aspect-[2/3] bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+            ${m.poster ? `<img src="${m.poster}" alt="${m.title}" class="w-full h-full object-cover" onerror="this.style.display='none'"/>` : `<i class="fa-solid fa-film text-3xl text-slate-600"></i>`}
+          </div>
+          <div class="p-1.5">
+            <p class="text-[11px] font-semibold text-slate-200 truncate">${m.title}</p>
+            <p class="text-[10px] text-slate-500">${m.year} • ★ ${m.rating}</p>
+          </div>
+        </div>`;
+    }
+
+    function render() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      let total = 0;
+      document.getElementById('rows').innerHTML = Object.keys(SECTIONS).map(k => {
+        const list = movies.map((m, i) => ({ m, i })).filter(({ m }) => m.title.toLowerCase().includes(q));
+        if (!list.length) return '';
+        total += list.length;
+        return `
+          <section>
+            <div class="flex items-center justify-between px-4 mb-3">
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <span class="w-1 h-4 bg-brand-500 rounded-full"></span> ${SECTIONS[k]}
+              </h2>
+            </div>
+            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 px-4">
+              ${list.map(({ m, i }) => card(m, i)).join('')}
+            </div>
+          </section>`;
+      }).join('');
+      document.getElementById('emptyMsg').classList.toggle('hidden', total > 0);
+    }
+
+    const detailsModal = document.getElementById('detailsModal');
+    function openDetails(i) {
+      const m = movies[i];
+      document.getElementById('dBanner').style.backgroundImage = m.poster ? `url('${m.poster}')` : '';
+      document.getElementById('dTitle').textContent = m.title;
+      document.getElementById('dRating').textContent = '★ ' + m.rating;
+      document.getElementById('dYear').textContent = m.year;
+      document.getElementById('dGenre').textContent = m.genre;
+      document.getElementById('dDesc').textContent = m.desc;
+      document.getElementById('dPlay').onclick = () => playMovie(m);
+      detailsModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      window.__androidGuard?.pushGuard();
+    }
+    function closeDetails() {
+      detailsModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    const playerModal = document.getElementById('playerModal');
+    const vid = document.getElementById('moviePlayer');
+    const frame = document.getElementById('movieFrame');
+    const noSource = document.getElementById('noSource');
+    let hls = null;
+
+    function stopPlayer() {
+      if (hls) { hls.destroy(); hls = null; }
+      vid.pause(); vid.removeAttribute('src'); vid.load();
+      frame.src = '';
+      [vid, frame].forEach(e => e.classList.add('hidden'));
+      noSource.classList.add('hidden'); noSource.classList.remove('flex');
+    }
+
+    function playMovie(m) {
+      closeDetails();
+      stopPlayer();
+      playerModal.classList.remove('hidden');
+      window.__androidGuard?.pushGuard();
+      if (!m.url) { noSource.classList.remove('hidden'); noSource.classList.add('flex'); return; }
+      if (/\.m3u8(\?|$)/.test(m.url) && window.Hls && Hls.isSupported()) {
+        vid.classList.remove('hidden');
+        hls = new Hls(); hls.loadSource(m.url); hls.attachMedia(vid);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => vid.play().catch(() => {}));
+      } else if (/\.(mp4|webm)(\?|$)/.test(m.url)) {
+        vid.classList.remove('hidden'); vid.src = m.url; vid.play().catch(() => {});
+      } else {
+        frame.classList.remove('hidden'); frame.src = m.url;
+      }
+    }
+
+    function closePlayer() {
+      stopPlayer();
+      playerModal.classList.add('hidden');
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (!playerModal.classList.contains('hidden')) closePlayer();
+      else if (!detailsModal.classList.contains('hidden')) closeDetails();
+    });
+
+    render();
+  </script>
+</body>
+</html>
