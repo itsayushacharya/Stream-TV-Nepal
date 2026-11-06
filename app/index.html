@@ -27,7 +27,6 @@
     .no-sb { scrollbar-width: none; -ms-overflow-style: none; }
     .no-sb::-webkit-scrollbar { display: none; }
 
-    /* ============ ANDROID APP FEEL ============ */
     html, body {
       overscroll-behavior: none;
       -webkit-tap-highlight-color: transparent;
@@ -40,20 +39,16 @@
     input, textarea { user-select: text; -webkit-user-select: text; }
     img { -webkit-user-drag: none; }
 
-    /* Safe area (notch + gesture bar) */
     .app-header { padding-top: env(safe-area-inset-top); }
     .bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 6px); }
     main.page { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 
-    /* Card tap feedback */
     .channel-card:active, .row-card:active { transform: scale(0.95); transition: transform .08s ease; }
     .row-card { transition: transform .15s ease; }
 
-    /* Hide scrollbar on horizontal rows */
     .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
     .hscroll > * { scroll-snap-align: start; }
 
-    /* Splash */
     #splashScreen {
       position: fixed; inset: 0; z-index: 9999; background: #0b0f19;
       display: flex; flex-direction: column; align-items: center;
@@ -76,10 +71,8 @@
     }
     @keyframes splashLoad { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 
-    /* Fullscreen Player Modal */
     #playerModal { transition: opacity .25s ease; }
 
-    /* Bottom nav active state */
     .bnav-item { color: #64748b; transition: color .15s ease; }
     .bnav-item.active { color: #3b82f6; }
     .bnav-item.active i { transform: translateY(-1px); }
@@ -88,7 +81,6 @@
 </head>
 <body class="h-full antialiased selection:bg-brand-500 selection:text-white">
 
-  <!-- SPLASH -->
   <div id="splashScreen">
     <img src="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png" alt="Stream TV Nepal" />
     <div class="splash-title text-center">
@@ -97,7 +89,6 @@
     <div class="splash-loader"><span></span></div>
   </div>
 
-  <!-- TOP APP BAR (Android style) -->
   <header class="app-header sticky top-0 z-40 bg-[#0b0f19]/95 backdrop-blur-md border-b border-slate-800">
     <div class="flex items-center justify-between h-14 px-4">
       <div class="flex items-center font-black text-xl tracking-tight">
@@ -110,7 +101,6 @@
       </div>
     </div>
 
-    <!-- Search bar (hidden until tap) -->
     <div id="searchBar" class="hidden px-4 pb-3">
       <div class="relative">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
@@ -123,10 +113,8 @@
     </div>
   </header>
 
-  <!-- MAIN CONTENT -->
   <main id="homeMain" class="page relative z-10">
 
-    <!-- HERO (compact mobile banner) -->
     <section id="heroSection" class="relative mx-3 mt-3 rounded-2xl overflow-hidden bg-slate-900 border border-slate-800">
       <div class="absolute inset-0">
         <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBxnUkh7jJ8aUJjuMHL4Uo-tBVsvSC-Bv3rxH8nB_qF9hyEmEG8CItsNAJ&s=10"
@@ -140,11 +128,11 @@
         </h1>
         <p class="text-sm text-slate-300 mb-4">Live channels, movies & shows — all in one place.</p>
         <div class="flex gap-2">
-          <button onclick="scrollToSection('news-section')"
+          <button onclick="scrollToSection('nepali-section')"
             class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-full text-sm shadow-lg shadow-brand-500/30">
             <i class="fa-solid fa-play mr-1.5"></i> Watch Now
           </button>
-          <button onclick="openLive()"
+          <button onclick="openCategory('nepali')"
             class="flex-1 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-bold py-2.5 rounded-full text-sm border border-white/10">
             <i class="fa-solid fa-tv mr-1.5"></i> Live TV
           </button>
@@ -152,52 +140,15 @@
       </div>
     </section>
 
-    <!-- CHANNEL SECTIONS (horizontal scroll rows) -->
-    <section id="news-section" class="mt-6">
-      <div class="flex items-center justify-between px-4 mb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <span class="w-1 h-4 bg-brand-500 rounded-full"></span> News
-        </h3>
-        <button onclick="openLive()" class="text-xs text-blue-400 font-semibold">See all <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></button>
-      </div>
-      <div id="news-grid" class="hscroll no-sb flex gap-3 px-4 pb-2"></div>
-    </section>
+    <div id="dynamicRows"></div>
 
-    <section id="sports-section" class="mt-6">
-      <div class="flex items-center justify-between px-4 mb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <span class="w-1 h-4 bg-brand-500 rounded-full"></span> Sports
-        </h3>
-        <button onclick="openSport()" class="text-xs text-blue-400 font-semibold">See all <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></button>
-      </div>
-      <div id="sports-grid" class="hscroll no-sb flex gap-3 px-4 pb-2"></div>
-    </section>
-
-    <section id="entertainment-section" class="mt-6">
-      <div class="flex items-center justify-between px-4 mb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <span class="w-1 h-4 bg-brand-500 rounded-full"></span> Entertainment
-        </h3>
-        <button onclick="openEntertainment()" class="text-xs text-blue-400 font-semibold">See all <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></button>
-      </div>
-      <div id="entertainment-grid" class="hscroll no-sb flex gap-3 px-4 pb-2">
-        <div class="shrink-0 w-[130px] rounded-xl bg-[#161b26] border border-slate-800 flex items-center justify-center p-4">
-          <div class="w-6 h-6 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Spacer for bottom nav -->
     <div class="h-6"></div>
   </main>
 
-  <!-- ================= REDESIGNED FULLSCREEN PLAYER (Top Video + Bottom List) ================= -->
   <div id="playerModal" class="fixed inset-0 z-50 bg-[#0b0f19] hidden opacity-0 flex flex-col">
-    
-    <!-- TOP SECTION: Video & Controls -->
+
     <div class="relative bg-black w-full shrink-0 flex flex-col" style="padding-top: env(safe-area-inset-top);">
-      
-      <!-- Header Bar (Back + Title) -->
+
       <div class="w-full flex items-center gap-3 px-3 py-2 bg-black/90 z-20">
         <button onclick="closePlayer()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white shrink-0">
           <i class="fa-solid fa-arrow-left text-sm"></i>
@@ -210,16 +161,13 @@
         </div>
       </div>
 
-      <!-- Video Area (16:9 Aspect Ratio) -->
       <div class="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden">
         <video id="videoPlayer" class="w-full h-full object-contain" playsinline></video>
 
-        <!-- Loading Overlay -->
         <div id="loadingOverlay" class="absolute inset-0 flex items-center justify-center bg-black/40 z-10 pointer-events-none">
           <div class="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
         </div>
 
-        <!-- Error Overlay -->
         <div id="errorOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0b0f19]/95 hidden text-center p-6 z-10">
           <i class="fa-solid fa-triangle-exclamation text-red-500 text-3xl mb-2"></i>
           <h3 class="text-white font-bold text-base mb-1">Stream Unavailable</h3>
@@ -230,7 +178,6 @@
         </div>
       </div>
 
-      <!-- CUSTOM CONTROLS BAR (Play, Mute, Fullscreen) -->
       <div class="flex items-center justify-between px-4 py-2 bg-[#161b26] border-b border-slate-800 z-20">
         <div class="flex items-center gap-4">
           <button onclick="togglePlay()" id="btnPlayPause" class="text-white hover:text-blue-400 transition">
@@ -248,19 +195,13 @@
       </div>
     </div>
 
-    <!-- BOTTOM SECTION: Channel List -->
     <div class="flex-1 flex flex-col overflow-hidden bg-[#0b0f19]">
-      <!-- Filters -->
       <div class="px-3 py-3 shrink-0 bg-[#0b0f19] border-b border-slate-800/50">
-        <div class="flex gap-2 overflow-x-auto no-sb">
+        <div class="flex gap-2 overflow-x-auto no-sb" id="filterTabs">
           <button data-f="all" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-blue-600 text-white shadow-lg shadow-blue-500/30">All</button>
-          <button data-f="news" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">News</button>
-          <button data-f="sports" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">Sports</button>
-          <button data-f="entertainment" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">Entertainment</button>
         </div>
       </div>
 
-      <!-- Grid of Channels (Scrollable) -->
       <div class="flex-1 overflow-y-auto no-sb p-3">
         <div id="panelGrid" class="grid grid-cols-4 gap-3"></div>
       </div>
@@ -268,14 +209,13 @@
 
   </div>
 
-  <!-- BOTTOM NAV (Android style) -->
   <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-slate-800">
     <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
       <button onclick="showView('home')" data-nav="home" class="bnav-item active flex flex-col items-center justify-center gap-0.5 px-4 py-1">
         <i class="fa-solid fa-house text-lg"></i>
         <span class="text-[10px] font-semibold">Home</span>
       </button>
-      <button onclick="openLive()" data-nav="live" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+      <button onclick="openCategory('nepali')" data-nav="live" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
         <i class="fa-solid fa-tv text-lg"></i>
         <span class="text-[10px] font-semibold">Live</span>
       </button>
@@ -291,7 +231,6 @@
   </nav>
 
   <script>
-    // ===================== SPLASH =====================
     (function initSplash() {
       const splash = document.getElementById('splashScreen');
       if (sessionStorage.getItem('stn_splash_shown')) { splash.classList.add('splash-hidden'); return; }
@@ -301,7 +240,6 @@
       setTimeout(() => splash.classList.add('splash-hidden'), 3000);
     })();
 
-    // ===================== ANDROID BACK =====================
     (function androidBack() {
       let pushed = false;
       window.__androidGuard = {
@@ -318,7 +256,6 @@
       });
     })();
 
-    // ===================== SEARCH =====================
     function toggleSearch() {
       const bar = document.getElementById('searchBar');
       bar.classList.toggle('hidden');
@@ -331,32 +268,33 @@
 
     // ===================== STATIC CHANNELS =====================
     const staticChannels = [
-      // ---- NEWS ----
-      { id: "kantipur-tv", name: "Kantipur TV HD", categoryKey: "news", logoText: "KTV", badge: "HD",
+      // ============ NEPALI ============
+      { id: "kantipur-tv", name: "Kantipur TV HD", categoryKey: "nepali", logoText: "KTV", badge: "HD",
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/17/Kantipur_TV_HD.png",
-        url: "https://ktvhdsg.ekantipur.com:8443/high_quality_85840165/hd/kantipurtv/hd_1080/chunks.m3u8?nimblesessionid=13647611" },
-      { id: "nepal-tv-hd", name: "Nepal TV HD", categoryKey: "news", logoText: "NTV HD", badge: "HD",
+        url: "https://ktvhdsg.ekantipur.com:8443/high_quality_85840165/hd/playlist.m3u8" },
+      { id: "nepal-tv-hd", name: "Nepal TV HD", categoryKey: "nepali", logoText: "NTV HD", badge: "HD",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoWf6bQefS3knKroJStvD4dW-rZ_ooVFs0G3Mk6EjwL_ewFLzrQ9fQrvNI&s=10",
         url: "https://ott-wlink-01.nettv.com.np/ott_abr/ntvnepalhdabr.stream/ottlive/ottNTVNEPAL480.stream/chunks.m3u8?nimblesessionid=62615788&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDExOjA5OjE0IEFNJmhhc2hfdmFsdWU9SjZzdUVDWlBjUHhYQ2czVXhmMVhpUT09JnZhbGlkbWludXRlcz02MCZpZD1leUowZVhBaU9pSktWMVFpTENKaGJHY2lPaUpTVXpJMU5pSjkuZXlKbGVIQWlPakUzT1RNM09USTFOelVzSW5OMVluTmpjbWxpWlhKZmFXUWlPaUkwTlRBMk1EZ3hJaXdpYzNSaUlqb2laMnhmTVRFME9UUXdNekkxTWpZNE5EQXlNVE01TVRVMUxURXdOeUo5LkMzLWZ1bDFyR3hYOVVlMXRCYTZmaGZ0X3plTkNCUjA1V3BHdVdvZzdNVnM=" },
-      { id: "ntv-news-hd", name: "NTV News HD", categoryKey: "news", logoText: "NTV News", badge: "HD",
+      { id: "ntv-news-hd", name: "NTV News HD", categoryKey: "nepali", logoText: "NTV News", badge: "HD",
         logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/43-png",
         url: "https://ott-wlink-01.nettv.com.np/ott_abr/ntvnewshdabr.stream/ottlive/ottNTVNEWS480.stream/chunks.m3u8?nimblesessionid=62615922&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDExOjA5OjE0IEFNJmhhc2hfdmFsdWU9SjZzdUVDWlBjUHhYQ2czVXhmMVhpUT09JnZhbGlkbWludXRlcz02MCZpZD1leUowZVhBaU9pSktWMVFpTENKaGJHY2lPaUpTVXpJMU5pSjkuZXlKbGVIQWlPakUzT1RNM09USTFOelVzSW5OMVluTmpjbWxpWlhKZmFXUWlPaUkwTlRBMk1EZ3hJaXdpYzNSaUlqb2laMnhmTVRFME9UUXdNekkxTWpZNE5EQXlNVE01TVRVMUxURXdOeUo5LkMzLWZ1bDFyR3hYOVVlMXRCYTZmaGZ0X3plTkNCUjA1V3BHdVdvZzdNVnM=" },
-      { id: "ntv-plus", name: "NTV Plus", categoryKey: "news", logoText: "NTV World", badge: "HD",
+      { id: "ntv-plus", name: "NTV Plus", categoryKey: "nepali", logoText: "NTV World", badge: "HD",
         logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/44-png",
         url: "https://9MTEvMS8OS5leUpsZUhBaU9qRTNPVE0yTXpVM05qWXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuTjJpZkdfRUQzc1hEMzR1dHpIOXE5dktBZEk1NkUzQ3IzTzZkSjY0Qkd4VQ==" },
-      { id: "Makalu-Tv", name: "MAKALU TV HD", categoryKey: "news", logoText: "MTV", badge: "HD",
+      { id: "Makalu-Tv", name: "MAKALU TV HD", categoryKey: "nepali", logoText: "MTV", badge: "HD",
         logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/2021-01-31-131827-60165d477593e-png",
         url: "https://ott-wlink-01.nettv.com.np/ottlivestream/netMakaluTvHD.stream/chunks.m3u8?nimblesessionid=62583770&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDc6MzU6MjIgQU0maGFzaF92YWx1ZT03UkRUYXcwTVcrQjk1RnNhTzFUeUVRPT0mdmFsaWRtaW51dGVzPTYwJmlkPWV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSlNVekkxTmlKOS5leUpsZUhBaU9qRTNPVE0zT1RJMU56VXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuQzMtZnVsMXJHeFg5VWUxdEJhNmZoZnRfemVOQ0JSMDVXcEd1V29nN01Wcw==" },
-      { id: "Image-HD", name: "Image HD", categoryKey: "news", logoText: "Image HD", badge: "LIVE",
+      { id: "Image-HD", name: "Image HD", categoryKey: "nepali", logoText: "Image HD", badge: "LIVE",
         logoUrl: "https://yt3.googleusercontent.com/A-htnNKtOl-rjWxCT_6L2ml26w4XuFFNEC7LUSuDPHT9DxKkblCBh374n2qUz-TCIIzlrBLlRKs=s900-c-k-c0x00ffffff-no-rj",
         url: "https://ott-wlink-01.nettv.com.np/ott_abr/imageabr.stream/ottlive/ottIMAGE360.stream/chunks.m3u8?nimblesessionid=62582430&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDc6MzU6MjIgQU0maGFzaF92YWx1ZT03UkRUYXcwTVcrQjk1RnNhTzFUeUVRPT0mdmFsaWRtaW51dGVzPTYwJmlkPWV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSlNVekkxTmlKOS5leUpsZUhBaU9qRTNPVE0zT1RJMU56VXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuQzMtZnVsMXJHeFg5VWUxdEJhNmZoZnRfemVOQ0JSMDVXcEd1V29nN01Wcw==" },
-      { id: "Space-4K", name: "Space 4K", categoryKey: "news", logoText: "Prime HD", badge: "HD",
+      { id: "Space-4K", name: "Space 4K", categoryKey: "nepali", logoText: "Prime HD", badge: "HD",
         logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/2022-06-09-174601-62a1e0fd0eeca-pngg",
         url: "https://ott-wlink-01.nettv.com.np/ottlivestream/netSPACE4K.stream/chunks.m3u8?nimblesessionid=62582680&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDc6MzU6MjIgQU0maGFzaF92YWx1ZT03UkRUYXcwTVcrQjk1RnNhTzFUeUVRPT0mdmFsaWRtaW51dGVzPTYwJmlkPWV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSlNVekkxTmlKOS5leUpsZUhBaU9qRTNPVE0zT1RJMU56VXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuQzMtZnVsMXJHeFg5VWUxdEJhNmZoZnRfemVOQ0JSMDVXcEd1V29nN01Wcw==" },
-      { id: "Mountain-TV-HD", name: "Mountain TV HD", categoryKey: "news", logoText: "MTV", badge: "HD",
+      { id: "Mountain-TV-HD", name: "Mountain TV HD", categoryKey: "nepali", logoText: "MTV", badge: "HD",
         logoUrl: "https://ott-resources-static.geniustv.geniussystems.com.np/public/images/v1/channels/2021-05-27-115215-60af3713dbed3-png",
         url: "https://ott-wlink-01.nettv.com.np/ott_abr/mountainabr.stream/ottlive/netMOUNTAINHIGH.stream/chunks.m3u8?nimblesessionid=62583119&wmsAuthSign=c2VydmVyX3RpbWU9MTEvMy8yMDI2IDc6MzU6MjIgQU0maGFzaF92YWx1ZT03UkRUYXcwTVcrQjk1RnNhTzFUeUVRPT0mdmFsaWRtaW51dGVzPTYwJmlkPWV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSlNVekkxTmlKOS5leUpsZUhBaU9qRTNPVE0zT1RJMU56VXNJbk4xWW5OamNtbGlaWEpmYVdRaU9pSTBOVEEyTURneElpd2ljM1JpSWpvaVoyeGZNVEUwT1RRd016STFNalk0TkRBeU1UTTVNVFUxTFRFd055SjkuQzMtZnVsMXJHeFg5VWUxdEJhNmZoZnRfemVOQ0JSMDVXcEd1V29nN01Wcw==" },
-      // Newly added news channels
+
+      // ============ NEWS ============
       { id: "aaj-tak-hd", name: "Aaj Tak HD", categoryKey: "news", logoText: "AT", badge: "HD",
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Aaj_Tak_Logo.svg/512px-Aaj_Tak_Logo.svg.png",
         url: "https://feeds.intoday.in/aajtak/api/aajtakhd/master.m3u8" },
@@ -382,36 +320,29 @@
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/DD_News_logo.svg/512px-DD_News_logo.svg.png",
         url: "https://ddnews-live.akamaized.net/hls/live/2024683/ddnews/index.m3u8" },
 
-      // ---- SPORTS ----
+      // ============ SPORTS ============
       { id: "dd-sports-hd", name: "DD Sports HD", categoryKey: "sports", logoText: "DDS", badge: "HD",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIp1mbSgFtwwA0HxPug2c-yCdWIoygfy822UaKHcsIxw&s",
         url: "https://mumbai-edge.smartplaytv.in/DDSportsHD/tracks-v1a1/mono.m3u8" },
-      { id: "star-sports-1", name: "Star Sports 1", categoryKey: "sports", logoText: "SS1", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Star_Sports_logo.svg/512px-Star_Sports_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/StarSports1/index.m3u8" },
-      { id: "star-sports-hindi", name: "Star Sports Hindi", categoryKey: "sports", logoText: "SSH", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Star_Sports_logo.svg/512px-Star_Sports_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/StarSportsHindi/index.m3u8" },
-      { id: "ten-1", name: "Ten 1", categoryKey: "sports", logoText: "TEN1", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Sony_Ten_logo.svg/512px-Sony_Ten_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SonyTen1/index.m3u8" },
-      { id: "ten-2", name: "Ten 2", categoryKey: "sports", logoText: "TEN2", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Sony_Ten_logo.svg/512px-Sony_Ten_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SonyTen2/index.m3u8" },
-      { id: "ten-3", name: "Ten 3", categoryKey: "sports", logoText: "TEN3", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Sony_Ten_logo.svg/512px-Sony_Ten_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SonyTen3/index.m3u8" },
-      { id: "eurosport", name: "Eurosport", categoryKey: "sports", logoText: "ES", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Eurosport_Logo_2015.svg/512px-Eurosport_Logo_2015.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/Eurosport/index.m3u8" },
-      { id: "willow-cricket", name: "Willow Cricket", categoryKey: "sports", logoText: "WC", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Willow_Cricket_logo.svg/512px-Willow_Cricket_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/WillowCricket/index.m3u8" },
-      { id: "nba-tv", name: "NBA TV", categoryKey: "sports", logoText: "NBA", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/NBA_TV_logo.svg/512px-NBA_TV_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/NBATV/index.m3u8" },
 
-      // ---- ENTERTAINMENT (static) ----
+      // ============ MUSIC ============
+      { id: "9xm", name: "9XM", categoryKey: "music", logoText: "9XM", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/9XM_logo.svg/512px-9XM_logo.svg.png",
+        url: "https://9xjio.wiseplayout.com/9XM/master.m3u8" },
+      { id: "mtv-india", name: "MTV India", categoryKey: "music", logoText: "MTV", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/MTV_Logo_2010.svg/512px-MTV_Logo_2010.svg.png",
+        url: "https://d1l4jgwfvc1j3f.cloudfront.net/MTVIndia/index.m3u8" },
+      { id: "channel-v", name: "Channel V", categoryKey: "music", logoText: "V", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Channel_V_logo.svg/512px-Channel_V_logo.svg.png",
+        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ChannelV/index.m3u8" },
+      { id: "b4u-music", name: "B4U Music", categoryKey: "music", logoText: "B4U", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/B4U_Music_logo.svg/512px-B4U_Music_logo.svg.png",
+        url: "https://streams.tangotv.in/B4UMUSIC/ORIGIN/index.m3u8" },
+      { id: "mastiii", name: "Mastiii", categoryKey: "music", logoText: "M3", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Mastiii_logo.svg/512px-Mastiii_logo.svg.png",
+        url: "https://d1l4jgwfvc1j3f.cloudfront.net/Mastiii/index.m3u8" },
+
+      // ============ ENTERTAINMENT (serials + info) ============
       { id: "star-plus", name: "Star Plus", categoryKey: "entertainment", logoText: "SP", badge: "HD",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTn2-m9-_smm4H59l5-7HpMb0i80SFTJ8LQTF8IgoaFPw&s=10",
         url: "https://d1rc86nwwc9fag.cloudfront.net/260723/starplusuk_2500/chunklist.m3u8" },
@@ -424,36 +355,9 @@
       { id: "and-tv-hd", name: "&TV HD", categoryKey: "entertainment", logoText: "&TV", badge: "HD",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTwA4TUz7FLhcMAB_Oby0_6fPz4DK9hwr2Xwxb5KeVSNQ&s=10",
         url: "https://3f56f997.wurl.com/manifest/f36d25e7e52f1ba8d7e56eb859c636563214f541/U2Ftc3VuZy1nYl9BbmRUVl9ITFM/62ee2b4c-539c-4838-abb7-b105ad18061d/5.m3u8" },
-      { id: "b4umovies", name: "B4U Movies", categoryKey: "entertainment", logoText: "B4U", badge: "HD",
-        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEnzxdP8-VmS1m5nxukY7H-EI3TiuHbD7D7I-CZQYGkg&s",
-        url: "https://streams.tangotv.in/B4UMOVIES/ORIGIN/index.m3u8" },
       { id: "sony-ent", name: "Sony Entertainment", categoryKey: "entertainment", logoText: "SET", badge: "HD",
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Sony_Entertainment_Television_logo.svg/512px-Sony_Entertainment_Television_logo.svg.png",
         url: "http://103.175.242.10:8080/sonyent10/index.m3u8" },
-      { id: "9xm", name: "9XM", categoryKey: "entertainment", logoText: "9XM", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/9XM_logo.svg/512px-9XM_logo.svg.png",
-        url: "https://9xjio.wiseplayout.com/9XM/master.m3u8" },
-      { id: "star-gold", name: "Star Gold", categoryKey: "entertainment", logoText: "SG", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Star_Gold_logo.svg/512px-Star_Gold_logo.svg.png",
-        url: "https://d1rc86nwwc9fag.cloudfront.net/260723/stargolduk_2500/chunklist.m3u8" },
-      { id: "sony-max", name: "Sony Max", categoryKey: "entertainment", logoText: "SM", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Sony_MAX_logo.svg/512px-Sony_MAX_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SonyMax/index.m3u8" },
-      { id: "zee-cinema", name: "Zee Cinema", categoryKey: "entertainment", logoText: "ZC", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Zee_Cinema_logo.svg/512px-Zee_Cinema_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ZeeCinema/index.m3u8" },
-      { id: "set-max", name: "SET Max", categoryKey: "entertainment", logoText: "MAX", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/SET_Max_logo.svg/512px-SET_Max_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SETMax/index.m3u8" },
-      { id: "colors-cineplex", name: "Colors Cineplex", categoryKey: "entertainment", logoText: "CC", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Colors_Cineplex_logo.svg/512px-Colors_Cineplex_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ColorsCineplex/index.m3u8" },
-      { id: "mtv-india", name: "MTV India", categoryKey: "entertainment", logoText: "MTV", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/MTV_Logo_2010.svg/512px-MTV_Logo_2010.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/MTVIndia/index.m3u8" },
-      { id: "channel-v", name: "Channel V", categoryKey: "entertainment", logoText: "V", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Channel_V_logo.svg/512px-Channel_V_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ChannelV/index.m3u8" },
       { id: "comedy-central-india", name: "Comedy Central India", categoryKey: "entertainment", logoText: "CC", badge: "HD",
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Comedy_Central_2019.svg/512px-Comedy_Central_2019.svg.png",
         url: "https://d1l4jgwfvc1j3f.cloudfront.net/ComedyCentralIndia/index.m3u8" },
@@ -475,27 +379,68 @@
       { id: "food-food", name: "Food Food", categoryKey: "entertainment", logoText: "FF", badge: "HD",
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/FoodFood_logo.svg/512px-FoodFood_logo.svg.png",
         url: "https://d1l4jgwfvc1j3f.cloudfront.net/FoodFood/index.m3u8" },
-      { id: "b4u-music", name: "B4U Music", categoryKey: "entertainment", logoText: "B4U", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/B4U_Music_logo.svg/512px-B4U_Music_logo.svg.png",
-        url: "https://streams.tangotv.in/B4UMUSIC/ORIGIN/index.m3u8" },
-      { id: "mastiii", name: "Mastiii", categoryKey: "entertainment", logoText: "M3", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Mastiii_logo.svg/512px-Mastiii_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/Mastiii/index.m3u8" },
       { id: "zoom", name: "Zoom", categoryKey: "entertainment", logoText: "ZOOM", badge: "HD",
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Zoom_TV_logo.svg/512px-Zoom_TV_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/Zoom/index.m3u8" }
+        url: "https://d1l4jgwfvc1j3f.cloudfront.net/Zoom/index.m3u8" },
+
+      // ============ MOVIES ============
+      { id: "b4umovies", name: "B4U Movies", categoryKey: "movies", logoText: "B4U", badge: "HD",
+        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEnzxdP8-VmS1m5nxukY7H-EI3TiuHbD7D7I-CZQYGkg&s",
+        url: "https://streams.tangotv.in/B4UMOVIES/ORIGIN/index.m3u8" },
+      { id: "star-gold", name: "Star Gold", categoryKey: "movies", logoText: "SG", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Star_Gold_logo.svg/512px-Star_Gold_logo.svg.png",
+        url: "https://d1rc86nwwc9fag.cloudfront.net/260723/stargolduk_2500/chunklist.m3u8" },
+      { id: "sony-max", name: "Sony Max", categoryKey: "movies", logoText: "SM", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Sony_MAX_logo.svg/512px-Sony_MAX_logo.svg.png",
+        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SonyMax/index.m3u8" },
+      { id: "zee-cinema", name: "Zee Cinema", categoryKey: "movies", logoText: "ZC", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Zee_Cinema_logo.svg/512px-Zee_Cinema_logo.svg.png",
+        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ZeeCinema/index.m3u8" },
+      { id: "set-max", name: "SET Max", categoryKey: "movies", logoText: "MAX", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/SET_Max_logo.svg/512px-SET_Max_logo.svg.png",
+        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SETMax/index.m3u8" },
+      { id: "colors-cineplex", name: "Colors Cineplex", categoryKey: "movies", logoText: "CC", badge: "HD",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Colors_Cineplex_logo.svg/512px-Colors_Cineplex_logo.svg.png",
+        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ColorsCineplex/index.m3u8" }
     ];
 
-    // ===================== PLAYLISTS (from file 1 — now merged into Entertainment) =====================
+    // ===================== PLAYLISTS =====================
     const PLAYLISTS = [
-      { name: "India (Hindi & more)", url: "https://iptv-org.github.io/iptv/countries/in.m3u" },
-      { name: "Nepal", url: "https://iptv-org.github.io/iptv/countries/np.m3u" }
+      { name: "India (Hindi & more)", url: "https://iptv-org.github.io/iptv/countries/in.m3u", defaultCategory: "entertainment" },
+      { name: "Nepal", url: "https://iptv-org.github.io/iptv/countries/np.m3u", defaultCategory: "nepali" }
     ];
+
+    const CATEGORY_META = {
+      "nepali":        { label: "Nepali",          color: "bg-red-500"     },
+      "news":          { label: "News",            color: "bg-sky-500"     },
+      "sports":        { label: "Sports",          color: "bg-green-500"   },
+      "music":         { label: "Music",           color: "bg-purple-500"  },
+      "entertainment": { label: "Entertainment",   color: "bg-amber-500"   },
+      "movies":        { label: "Movies",          color: "bg-pink-500"    },
+      "kids":          { label: "Kids",            color: "bg-cyan-500"    }
+    };
+    const CATEGORY_ORDER = ["nepali", "news", "sports", "music", "entertainment", "movies", "kids"];
 
     let channels = [...staticChannels];
 
     // ===================== M3U PARSER =====================
-    function parseM3U(text, groupName) {
+    function detectCategory(groupTitle, name, defaultCategory) {
+      const g = (groupTitle || '').toLowerCase();
+      const n = (name || '').toLowerCase();
+
+      if (/nepal/.test(g)) return 'nepali';
+
+      if (/sport|cricket|football|soccer|nba|tennis|f1|motogp/.test(g) || /\bsports?\b|\bcricket\b/.test(n)) return 'sports';
+      if (/music|song|mtv|vh1/.test(g) || /\bmusic\b|\bmtv\b/.test(n)) return 'music';
+      if (/kid|child|cartoon|toon|junior/.test(g) || /\bkids?\b|cartoon|\btoon\b/.test(n)) return 'kids';
+      if (/movie|cinema|film|bollywood|hollywood/.test(g) || /\bmovies?\b|\bcinema\b|\bfilms?\b/.test(n)) return 'movies';
+      if (/news/.test(g) || /\bnews\b/.test(n)) return 'news';
+      if (/entertainment|serial|drama|comedy|reality|show/.test(g)) return 'entertainment';
+
+      return defaultCategory || 'entertainment';
+    }
+
+    function parseM3U(text, playlistInfo) {
       const lines = text.split('\n');
       const out = [];
       let info = null;
@@ -505,12 +450,15 @@
           const nameMatch = line.match(/,(.*)$/);
           const name = nameMatch ? nameMatch[1].trim() : 'Unknown';
           const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+          const groupMatch = line.match(/group-title="([^"]*)"/);
+          const groupTitle = groupMatch ? groupMatch[1] : '';
+          const categoryKey = detectCategory(groupTitle, name, playlistInfo.defaultCategory);
           info = {
             name,
             logoUrl: logoMatch ? logoMatch[1] : '',
-            logoText: name.split(' ').map(w => w[0]).join('').slice(0, 4).toUpperCase(),
-            categoryKey: 'entertainment',
-            playlistGroup: groupName,
+            logoText: name.split(/[\s\-_]+/).filter(Boolean).map(w => w[0]).join('').slice(0, 4).toUpperCase() || 'TV',
+            categoryKey,
+            playlistGroup: playlistInfo.name,
             badge: 'LIVE'
           };
         } else if (line && !line.startsWith('#') && info) {
@@ -523,11 +471,7 @@
     }
 
     // ===================== RENDER HOME ROWS =====================
-    const grids = {
-      news: document.getElementById('news-grid'),
-      sports: document.getElementById('sports-grid'),
-      entertainment: document.getElementById('entertainment-grid')
-    };
+    const dynamicRowsEl = document.getElementById('dynamicRows');
 
     function rowCard(ch, i) {
       return `
@@ -545,13 +489,33 @@
     }
 
     function renderHomeRows() {
-      const html = { news: '', sports: '', entertainment: '' };
+      const groups = {};
       channels.forEach((ch, i) => {
-        if (html[ch.categoryKey] !== undefined) html[ch.categoryKey] += rowCard(ch, i);
+        if (!ch.categoryKey) ch.categoryKey = 'entertainment';
+        if (!groups[ch.categoryKey]) groups[ch.categoryKey] = [];
+        groups[ch.categoryKey].push({ ch, i });
       });
-      for (const k in grids) {
-        if (grids[k]) grids[k].innerHTML = html[k] || '';
+
+      let html = '';
+      for (const key of CATEGORY_ORDER) {
+        const items = groups[key];
+        if (!items || !items.length) continue;
+        const meta = CATEGORY_META[key] || { label: key, color: 'bg-slate-500' };
+        html += `
+          <section id="${key}-section" class="mt-6">
+            <div class="flex items-center justify-between px-4 mb-3">
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <span class="w-1 h-4 ${meta.color} rounded-full"></span> ${meta.label}
+                <span class="text-[10px] text-slate-500 font-normal">(${items.length})</span>
+              </h3>
+              <button onclick="openCategory('${key}')" class="text-xs text-blue-400 font-semibold">See all <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></button>
+            </div>
+            <div class="hscroll no-sb flex gap-3 px-4 pb-2">
+              ${items.slice(0, 12).map(({ ch, i }) => rowCard(ch, i)).join('')}
+            </div>
+          </section>`;
       }
+      dynamicRowsEl.innerHTML = html || '<p class="px-4 py-10 text-center text-slate-500 text-sm">No channels yet — loading playlists…</p>';
     }
     renderHomeRows();
 
@@ -562,16 +526,19 @@
         try {
           const res = await fetch(p.url);
           const text = await res.text();
-          const chans = parseM3U(text, p.name);
+          const chans = parseM3U(text, p);
           loaded.push(...chans);
         } catch (e) {
           console.warn('Failed to load playlist', p.name, e);
         }
       }
       if (loaded.length) {
-        channels = [...staticChannels, ...loaded];
+        const seen = new Set(staticChannels.map(c => c.url));
+        const uniq = loaded.filter(c => c.url && !seen.has(c.url) && seen.add(c.url));
+        channels = [...staticChannels, ...uniq];
         renderHomeRows();
-        renderPanel(); 
+        buildFilterTabs();
+        renderPanel();
       }
     }
     loadPlaylists();
@@ -599,13 +566,8 @@
     let hls = null, currentUrl = '', currentIndex = -1, panelFilter = 'all';
     let loadingTimer = null;
 
-    // Custom Controls
     function togglePlay() {
-      if (video.paused) {
-        video.play();
-      } else {
-        video.pause();
-      }
+      if (video.paused) { video.play(); } else { video.pause(); }
     }
 
     video.addEventListener('play', () => {
@@ -635,8 +597,7 @@
         btnFullscreen.innerHTML = '<i class="fa-solid fa-expand text-lg"></i>';
       }
     }
-    
-    // Sync fullscreen icon if user exits fullscreen via native controls / ESC
+
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) {
         btnFullscreen.innerHTML = '<i class="fa-solid fa-expand text-lg"></i>';
@@ -645,12 +606,31 @@
       }
     });
 
-    // Grid rendering for player panel
+    function buildFilterTabs() {
+      const tabContainer = document.getElementById('filterTabs');
+      const catsInUse = new Set(channels.map(c => c.categoryKey).filter(Boolean));
+      const available = CATEGORY_ORDER.filter(k => catsInUse.has(k));
+
+      tabContainer.innerHTML =
+        `<button data-f="all" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-blue-600 text-white shadow-lg shadow-blue-500/30">All</button>` +
+        available.map(k => {
+          const label = (CATEGORY_META[k] && CATEGORY_META[k].label) || k;
+          return `<button data-f="${k}" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">${label}</button>`;
+        }).join('');
+
+      tabContainer.querySelectorAll('.ptab').forEach(b => b.onclick = () => setFilter(b.dataset.f));
+    }
+
     function renderPanel() {
       const filtered = channels
         .map((c, i) => ({ c, i }))
         .filter(({ c }) => panelFilter === 'all' || c.categoryKey === panelFilter);
-      
+
+      if (!filtered.length) {
+        panelGrid.innerHTML = `<p class="col-span-4 text-center text-slate-500 text-xs py-8">No channels in this category yet.</p>`;
+        return;
+      }
+
       panelGrid.innerHTML = filtered.map(({ c, i: realIdx }) => `
         <button onclick="playByIndex(${realIdx})"
           class="w-full aspect-square rounded-xl bg-white flex items-center justify-center p-2 border-2 transition-transform active:scale-95 ${realIdx === currentIndex ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-transparent opacity-80'}">
@@ -669,7 +649,6 @@
       });
       renderPanel();
     }
-    document.querySelectorAll('.ptab').forEach(b => b.onclick = () => setFilter(b.dataset.f));
 
     function playByIndex(i) {
       const c = channels[i];
@@ -681,11 +660,12 @@
       initStream(c.url);
     }
 
-    function openPlayer(i) {
+    function openPlayer(i, initialFilter) {
       playerModal.classList.remove('hidden');
       setTimeout(() => playerModal.classList.remove('opacity-0'), 10);
       document.body.style.overflow = 'hidden';
-      setFilter('all');
+      buildFilterTabs();
+      setFilter(initialFilter || 'all');
       playByIndex(i);
       window.__androidGuard?.pushGuard();
     }
@@ -701,14 +681,12 @@
     }
 
     function initStream(url) {
-      // Clear any previous loading timer
       if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
 
       loadingOverlay.classList.remove('hidden');
       errorOverlay.classList.add('hidden');
       if (hls) { hls.destroy(); hls = null; }
 
-      // Failsafe: hide spinner after 3.5s max, even if HLS is still negotiating
       loadingTimer = setTimeout(() => {
         loadingOverlay.classList.add('hidden');
       }, 3500);
@@ -717,8 +695,6 @@
         hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
-
-          // --- FAST LOADING TUNING ---
           startLevel: -1,
           abrEwmaDefaultEstimate: 500000,
           maxBufferLength: 10,
@@ -772,23 +748,17 @@
       if (e.key === 'Escape' && !playerModal.classList.contains('hidden')) closePlayer();
     });
 
-    // Bottom nav
     function showView(v) {
       document.querySelectorAll('.bnav-item[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === v));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    function openLive() {
+
+    function openCategory(catKey) {
+      const idx = channels.findIndex(c => c.categoryKey === catKey);
+      if (idx === -1) { openPlayer(0); return; }
       document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
-      document.querySelector('[data-nav="live"]')?.classList.add('active');
-      openPlayer(0);
-    }
-    function openSport() {
-      const i = channels.findIndex(c => c.categoryKey === 'sports');
-      openPlayer(Math.max(0, i));
-    }
-    function openEntertainment() {
-      const i = channels.findIndex(c => c.categoryKey === 'entertainment');
-      openPlayer(Math.max(0, i));
+      if (catKey === 'nepali') document.querySelector('[data-nav="live"]')?.classList.add('active');
+      openPlayer(idx, catKey);
     }
   </script>
 <!-- Code injected by live-server -->
@@ -830,43 +800,5 @@
 	// ]]>
 </script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"87327fcf53be41f08c37151b64e8f4d9","r":1,"spa":2}' crossorigin="anonymous"></script>
-<!-- Code injected by live-server -->
-<script>
-	// <![CDATA[  <-- For SVG support
-	if ('WebSocket' in window) {
-		(function () {
-			function refreshCSS() {
-				var sheets = [].slice.call(document.getElementsByTagName("link"));
-				var head = document.getElementsByTagName("head")[0];
-				for (var i = 0; i < sheets.length; ++i) {
-					var elem = sheets[i];
-					var parent = elem.parentElement || head;
-					parent.removeChild(elem);
-					var rel = elem.rel;
-					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
-						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
-						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
-					}
-					parent.appendChild(elem);
-				}
-			}
-			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
-			var address = protocol + window.location.host + window.location.pathname + '/ws';
-			var socket = new WebSocket(address);
-			socket.onmessage = function (msg) {
-				if (msg.data == 'reload') window.location.reload();
-				else if (msg.data == 'refreshcss') refreshCSS();
-			};
-			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
-				console.log('Live reload enabled.');
-				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
-			}
-		})();
-	}
-	else {
-		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
-	}
-	// ]]>
-</script>
 </body>
 </html>
