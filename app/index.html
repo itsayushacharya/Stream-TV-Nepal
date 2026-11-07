@@ -12,6 +12,12 @@
   <meta name="format-detection" content="telephone=no" />
   <link rel="manifest" href="manifest.json" />
 
+  <!-- Preconnect for speed -->
+  <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png">
@@ -29,31 +35,51 @@
 
     html, body {
       overscroll-behavior: none;
+      overscroll-behavior-y: contain;
+      -webkit-overflow-scrolling: touch;
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
-      touch-action: manipulation;
+      touch-action: pan-x pan-y;
       user-select: none;
       -webkit-user-select: none;
       background: #0b0f19;
+      height: 100%;
+      overflow: hidden;
     }
     input, textarea { user-select: text; -webkit-user-select: text; }
     img { -webkit-user-drag: none; }
 
-    .app-header { padding-top: env(safe-area-inset-top); }
+    /* App shell: body fixed, main is the scroll container (kills pull-to-refresh) */
+    #appShell {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-header { padding-top: env(safe-area-inset-top); flex-shrink: 0; }
     .bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 6px); }
-    main.page { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+    main.page {
+      position: relative;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
 
     .channel-card:active, .row-card:active { transform: scale(0.95); transition: transform .08s ease; }
-    .row-card { transition: transform .15s ease; }
+    .row-card { transition: transform .15s ease; will-change: transform; }
 
-    .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
+    .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
     .hscroll > * { scroll-snap-align: start; }
 
     #splashScreen {
       position: fixed; inset: 0; z-index: 9999; background: #0b0f19;
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; gap: 1.5rem;
-      transition: opacity .5s ease, visibility .5s ease;
+      transition: opacity .4s ease, visibility .4s ease;
     }
     #splashScreen.splash-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
     @keyframes splashPulse { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.06); opacity: 1; } }
@@ -71,7 +97,7 @@
     }
     @keyframes splashLoad { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 
-    #playerModal { transition: opacity .25s ease; }
+    #playerModal { transition: opacity .2s ease; }
 
     .bnav-item { color: #64748b; transition: color .15s ease; }
     .bnav-item.active { color: #3b82f6; }
@@ -89,67 +115,90 @@
     <div class="splash-loader"><span></span></div>
   </div>
 
-  <header class="app-header sticky top-0 z-40 bg-[#0b0f19]/95 backdrop-blur-md border-b border-slate-800">
-    <div class="flex items-center justify-between h-14 px-4">
-      <div class="flex items-center font-black text-xl tracking-tight">
-        <span class="text-blue-500">Stream</span><span class="text-white">&nbsp;TV Nepal</span>
-      </div>
-      <div class="flex items-center gap-1">
-        <button onclick="toggleSearch()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
-          <i class="fa-solid fa-magnifying-glass"></i>
-        </button>
-      </div>
-    </div>
-
-    <div id="searchBar" class="hidden px-4 pb-3">
-      <div class="relative">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-        <input type="text" id="searchInput" placeholder="Search channels..." oninput="filterChannels()"
-          class="w-full bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-10 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white">
-        <button onclick="toggleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400">
-          <i class="fa-solid fa-xmark text-xs"></i>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <main id="homeMain" class="page relative z-10">
-
-    <section id="heroSection" class="relative mx-3 mt-3 rounded-2xl overflow-hidden bg-slate-900 border border-slate-800">
-      <div class="absolute inset-0">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBxnUkh7jJ8aUJjuMHL4Uo-tBVsvSC-Bv3rxH8nB_qF9hyEmEG8CItsNAJ&s=10"
-          class="w-full h-full object-cover object-center opacity-40" alt="" />
-        <div class="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-[#0b0f19]/70 to-transparent"></div>
-      </div>
-      <div class="relative p-5 pt-16">
-        <p class="text-[10px] font-bold tracking-widest text-blue-400 mb-1">STREAM TV NEPAL</p>
-        <h1 class="text-2xl font-black text-white leading-tight mb-1">
-          Your Screen, Your Stream
-        </h1>
-        <p class="text-sm text-slate-300 mb-4">Live channels, movies & shows — all in one place.</p>
-        <div class="flex gap-2">
-          <button onclick="scrollToSection('nepali-section')"
-            class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-full text-sm shadow-lg shadow-brand-500/30">
-            <i class="fa-solid fa-play mr-1.5"></i> Watch Now
-          </button>
-          <button onclick="openCategory('nepali')"
-            class="flex-1 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-bold py-2.5 rounded-full text-sm border border-white/10">
-            <i class="fa-solid fa-tv mr-1.5"></i> Live TV
+  <div id="appShell">
+    <header class="app-header sticky top-0 z-40 bg-[#0b0f19] border-b border-slate-800">
+      <div class="flex items-center justify-between h-14 px-4">
+        <div class="flex items-center font-black text-xl tracking-tight">
+          <span class="text-blue-500">Stream</span><span class="text-white">&nbsp;TV Nepal</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="toggleSearch()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
+            <i class="fa-solid fa-magnifying-glass"></i>
           </button>
         </div>
       </div>
-    </section>
 
-    <div id="dynamicRows"></div>
+      <div id="searchBar" class="hidden px-4 pb-3">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+          <input type="text" id="searchInput" placeholder="Search channels..." oninput="filterChannels()"
+            class="w-full bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-10 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white">
+          <button onclick="toggleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400">
+            <i class="fa-solid fa-xmark text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </header>
 
-    <div class="h-6"></div>
-  </main>
+    <main id="homeMain" class="page relative z-10">
+
+      <section id="heroSection" class="relative mx-3 mt-3 rounded-2xl overflow-hidden bg-slate-900 border border-slate-800">
+        <div class="absolute inset-0">
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBxnUkh7jJ8aUJjuMHL4Uo-tBVsvSC-Bv3rxH8nB_qF9hyEmEG8CItsNAJ&s=10"
+            class="w-full h-full object-cover object-center opacity-40" alt="" loading="lazy" />
+          <div class="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-[#0b0f19]/70 to-transparent"></div>
+        </div>
+        <div class="relative p-5 pt-16">
+          <p class="text-[10px] font-bold tracking-widest text-blue-400 mb-1">STREAM TV NEPAL</p>
+          <h1 class="text-2xl font-black text-white leading-tight mb-1">
+            Your Screen, Your Stream
+          </h1>
+          <p class="text-sm text-slate-300 mb-4">Live channels, movies & shows — all in one place.</p>
+          <div class="flex gap-2">
+            <button onclick="scrollToSection('nepali-section')"
+              class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-full text-sm shadow-lg shadow-brand-500/30">
+              <i class="fa-solid fa-play mr-1.5"></i> Watch Now
+            </button>
+            <button onclick="openCategory('nepali')"
+              class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 rounded-full text-sm border border-white/10">
+              <i class="fa-solid fa-tv mr-1.5"></i> Live TV
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div id="dynamicRows"></div>
+
+      <div class="h-6"></div>
+    </main>
+
+    <nav class="bottom-nav bg-[#0b0f19] border-t border-slate-800 flex-shrink-0">
+      <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
+        <button onclick="showView('home')" data-nav="home" class="bnav-item active flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+          <i class="fa-solid fa-house text-lg"></i>
+          <span class="text-[10px] font-semibold">Home</span>
+        </button>
+        <button onclick="openCategory('nepali')" data-nav="live" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+          <i class="fa-solid fa-tv text-lg"></i>
+          <span class="text-[10px] font-semibold">Live</span>
+        </button>
+        <a href="movies.html" data-nav="movies" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+          <i class="fa-solid fa-film text-lg"></i>
+          <span class="text-[10px] font-semibold">Movies</span>
+        </a>
+        <a href="series.html" data-nav="series" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+          <i class="fa-solid fa-layer-group text-lg"></i>
+          <span class="text-[10px] font-semibold">Series</span>
+        </a>
+      </div>
+    </nav>
+  </div>
 
   <div id="playerModal" class="fixed inset-0 z-50 bg-[#0b0f19] hidden opacity-0 flex flex-col">
 
     <div class="relative bg-black w-full shrink-0 flex flex-col" style="padding-top: env(safe-area-inset-top);">
 
-      <div class="w-full flex items-center gap-3 px-3 py-2 bg-black/90 z-20">
+      <div class="w-full flex items-center gap-3 px-3 py-2 bg-black z-20">
         <button onclick="closePlayer()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white shrink-0">
           <i class="fa-solid fa-arrow-left text-sm"></i>
         </button>
@@ -162,7 +211,7 @@
       </div>
 
       <div class="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden">
-        <video id="videoPlayer" class="w-full h-full object-contain" playsinline></video>
+        <video id="videoPlayer" class="w-full h-full object-contain" playsinline webkit-playsinline muted></video>
 
         <div id="loadingOverlay" class="absolute inset-0 flex items-center justify-center bg-black/40 z-10 pointer-events-none">
           <div class="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -184,7 +233,7 @@
             <i class="fa-solid fa-pause text-lg"></i>
           </button>
           <button onclick="toggleMute()" id="btnMute" class="text-white hover:text-blue-400 transition">
-            <i class="fa-solid fa-volume-high text-lg"></i>
+            <i class="fa-solid fa-volume-xmark text-lg"></i>
           </button>
         </div>
         <div>
@@ -209,35 +258,14 @@
 
   </div>
 
-  <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-slate-800">
-    <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
-      <button onclick="showView('home')" data-nav="home" class="bnav-item active flex flex-col items-center justify-center gap-0.5 px-4 py-1">
-        <i class="fa-solid fa-house text-lg"></i>
-        <span class="text-[10px] font-semibold">Home</span>
-      </button>
-      <button onclick="openCategory('nepali')" data-nav="live" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
-        <i class="fa-solid fa-tv text-lg"></i>
-        <span class="text-[10px] font-semibold">Live</span>
-      </button>
-      <a href="movies.html" data-nav="movies" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
-        <i class="fa-solid fa-film text-lg"></i>
-        <span class="text-[10px] font-semibold">Movies</span>
-      </a>
-      <a href="series.html" data-nav="series" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
-        <i class="fa-solid fa-layer-group text-lg"></i>
-        <span class="text-[10px] font-semibold">Series</span>
-      </a>
-    </div>
-  </nav>
-
   <script>
     (function initSplash() {
       const splash = document.getElementById('splashScreen');
       if (sessionStorage.getItem('stn_splash_shown')) { splash.classList.add('splash-hidden'); return; }
       sessionStorage.setItem('stn_splash_shown', '1');
-      const hide = () => setTimeout(() => splash.classList.add('splash-hidden'), 700);
+      const hide = () => setTimeout(() => splash.classList.add('splash-hidden'), 500);
       if (document.readyState === 'complete') hide(); else window.addEventListener('load', hide);
-      setTimeout(() => splash.classList.add('splash-hidden'), 3000);
+      setTimeout(() => splash.classList.add('splash-hidden'), 2500);
     })();
 
     (function androidBack() {
@@ -268,8 +296,6 @@
 
     // ===================== STATIC CHANNELS =====================
     const staticChannels = [
-      // ============ NEPALI ============
-    
       // ============ NEWS ============
       { id: "aaj-tak-hd", name: "Aaj Tak HD", categoryKey: "news", logoText: "AT", badge: "HD",
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Aaj_Tak_Logo.svg/512px-Aaj_Tak_Logo.svg.png",
@@ -318,7 +344,7 @@
         logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Mastiii_logo.svg/512px-Mastiii_logo.svg.png",
         url: "https://d1l4jgwfvc1j3f.cloudfront.net/Mastiii/index.m3u8" },
 
-      // ============ ENTERTAINMENT (serials + info) ============
+      // ============ ENTERTAINMENT ============
       { id: "star-plus", name: "Star Plus", categoryKey: "entertainment", logoText: "SP", badge: "HD",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTn2-m9-_smm4H59l5-7HpMb0i80SFTJ8LQTF8IgoaFPw&s=10",
         url: "https://d1rc86nwwc9fag.cloudfront.net/260723/starplusuk_2500/chunklist.m3u8" },
@@ -455,7 +481,7 @@
           ${ch.badge ? `<div class="absolute top-1 right-1 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">${ch.badge}</div>` : ''}
           <div class="aspect-square bg-white flex items-center justify-center p-4">
             ${ch.logoUrl
-              ? `<img src="${ch.logoUrl}" class="max-h-full object-contain" alt="${ch.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><span class="hidden text-slate-900 font-bold text-base text-center">${ch.logoText}</span>`
+              ? `<img src="${ch.logoUrl}" class="max-h-full object-contain" alt="${ch.name}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><span class="hidden text-slate-900 font-bold text-base text-center">${ch.logoText}</span>`
               : `<span class="text-slate-900 font-bold text-base text-center">${ch.logoText}</span>`}
           </div>
           <div class="p-2">
@@ -495,8 +521,29 @@
     }
     renderHomeRows();
 
-    // ===================== LOAD PLAYLISTS =====================
+    // ===================== LOAD PLAYLISTS (with cache) =====================
     async function loadPlaylists() {
+      const CACHE_KEY = 'stn_playlists_v1';
+      const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
+
+      // Try cache first — instant
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { ts, data } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length) {
+            const seen = new Set(staticChannels.map(c => c.url));
+            const uniq = data.filter(c => c.url && !seen.has(c.url) && seen.add(c.url));
+            channels = [...staticChannels, ...uniq];
+            renderHomeRows();
+            buildFilterTabs();
+            renderPanel();
+            return;
+          }
+        }
+      } catch (e) { /* ignore cache errors */ }
+
+      // Otherwise fetch
       const loaded = [];
       for (const p of PLAYLISTS) {
         try {
@@ -512,6 +559,9 @@
         const seen = new Set(staticChannels.map(c => c.url));
         const uniq = loaded.filter(c => c.url && !seen.has(c.url) && seen.add(c.url));
         channels = [...staticChannels, ...uniq];
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: uniq }));
+        } catch (e) { /* quota exceeded, ignore */ }
         renderHomeRows();
         buildFilterTabs();
         renderPanel();
@@ -555,18 +605,14 @@
 
     function toggleMute() {
       video.muted = !video.muted;
-      if (video.muted) {
-        btnMute.innerHTML = '<i class="fa-solid fa-volume-xmark text-lg"></i>';
-      } else {
-        btnMute.innerHTML = '<i class="fa-solid fa-volume-high text-lg"></i>';
-      }
+      btnMute.innerHTML = video.muted
+        ? '<i class="fa-solid fa-volume-xmark text-lg"></i>'
+        : '<i class="fa-solid fa-volume-high text-lg"></i>';
     }
 
     function toggleFullscreen() {
       if (!document.fullscreenElement) {
-        video.requestFullscreen().catch(err => {
-          console.log(`Error attempting to enable fullscreen: ${err.message}`);
-        });
+        video.requestFullscreen().catch(err => console.log(`Fullscreen error: ${err.message}`));
         btnFullscreen.innerHTML = '<i class="fa-solid fa-compress text-lg"></i>';
       } else {
         document.exitFullscreen();
@@ -575,11 +621,9 @@
     }
 
     document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) {
-        btnFullscreen.innerHTML = '<i class="fa-solid fa-expand text-lg"></i>';
-      } else {
-        btnFullscreen.innerHTML = '<i class="fa-solid fa-compress text-lg"></i>';
-      }
+      btnFullscreen.innerHTML = document.fullscreenElement
+        ? '<i class="fa-solid fa-compress text-lg"></i>'
+        : '<i class="fa-solid fa-expand text-lg"></i>';
     });
 
     function buildFilterTabs() {
@@ -611,7 +655,7 @@
         <button onclick="playByIndex(${realIdx})"
           class="w-full aspect-square rounded-xl bg-white flex items-center justify-center p-2 border-2 transition-transform active:scale-95 ${realIdx === currentIndex ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-transparent opacity-80'}">
           ${c.logoUrl
-            ? `<img src="${c.logoUrl}" class="max-w-full max-h-full object-contain" onerror="this.outerHTML='<span class=\\'text-slate-900 font-bold text-[12px] text-center break-words leading-tight\\'>${c.logoText}</span>'" />`
+            ? `<img src="${c.logoUrl}" class="max-w-full max-h-full object-contain" loading="lazy" onerror="this.outerHTML='<span class=\\'text-slate-900 font-bold text-[12px] text-center break-words leading-tight\\'>${c.logoText}</span>'" />`
             : `<span class="text-slate-900 font-bold text-[12px] text-center break-words leading-tight">${c.logoText}</span>`}
         </button>`).join('');
     }
@@ -640,6 +684,12 @@
       playerModal.classList.remove('hidden');
       setTimeout(() => playerModal.classList.remove('opacity-0'), 10);
       document.body.style.overflow = 'hidden';
+
+      // Warm up the video element immediately
+      video.preload = 'auto';
+      video.muted = true;
+      try { video.load(); } catch (e) {}
+
       buildFilterTabs();
       setFilter(initialFilter || 'all');
       playByIndex(i);
@@ -652,8 +702,11 @@
         playerModal.classList.add('hidden');
         document.body.style.overflow = '';
         if (hls) { hls.destroy(); hls = null; }
-        video.pause(); video.removeAttribute('src'); video.load();
-      }, 250);
+        video.pause();
+        video.removeAttribute('src');
+        try { video.load(); } catch (e) {}
+        if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
+      }, 200);
     }
 
     function initStream(url) {
@@ -663,51 +716,58 @@
       errorOverlay.classList.add('hidden');
       if (hls) { hls.destroy(); hls = null; }
 
+      // Hide loader as soon as video truly starts playing
+      const onPlaying = () => {
+        if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
+        loadingOverlay.classList.add('hidden');
+        video.removeEventListener('playing', onPlaying);
+      };
+      video.addEventListener('playing', onPlaying);
+
+      // Fallback error after 12s
       loadingTimer = setTimeout(() => {
         loadingOverlay.classList.add('hidden');
-      }, 3500);
+        showError('Stream is taking too long. Tap Retry.');
+      }, 12000);
 
       if (Hls.isSupported()) {
         hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: true,
-          startLevel: -1,
-          abrEwmaDefaultEstimate: 500000,
-          maxBufferLength: 10,
-          maxMaxBufferLength: 30,
-          manifestLoadingTimeOut: 8000,
-          manifestLoadingMaxRetry: 2,
-          levelLoadingTimeOut: 8000,
-          levelLoadingMaxRetry: 2,
-          fragLoadingTimeOut: 15000,
-          fragLoadingMaxRetry: 3,
+          lowLatencyMode: false,
+          startLevel: 0,
+          capLevelToPlayerSize: true,
+          abrEwmaDefaultEstimate: 300000,
+          maxBufferLength: 8,
+          maxMaxBufferLength: 20,
+          manifestLoadingTimeOut: 6000,
+          manifestLoadingMaxRetry: 1,
+          levelLoadingTimeOut: 6000,
+          levelLoadingMaxRetry: 1,
+          fragLoadingTimeOut: 10000,
+          fragLoadingMaxRetry: 2,
           liveSyncDurationCount: 2,
-          liveMaxLatencyDurationCount: 5
+          liveMaxLatencyDurationCount: 5,
+          autoStartLoad: true,
+          startFragPrefetch: true
         });
         hls.loadSource(url);
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
-          loadingOverlay.classList.add('hidden');
           video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (e, data) => {
           if (!data.fatal) return;
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            if (!hls.retried) { hls.retried = true; setTimeout(() => hls.startLoad(), 1500); }
-            else showError('Network error — stream server unreachable or token expired.');
+            if (!hls.retried) { hls.retried = true; setTimeout(() => hls.startLoad(), 1000); }
+            else showError('Network error — stream unreachable.');
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             hls.recoverMediaError();
           } else showError('Playback failed.');
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
-        video.onloadedmetadata = () => {
-          if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
-          loadingOverlay.classList.add('hidden');
-          video.play().catch(() => {});
-        };
+        video.onloadedmetadata = () => video.play().catch(() => {});
         video.onerror = () => showError('Native playback failed.');
       } else showError('HLS not supported.');
     }
@@ -726,7 +786,7 @@
 
     function showView(v) {
       document.querySelectorAll('.bnav-item[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === v));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.getElementById('homeMain')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function openCategory(catKey) {
@@ -737,82 +797,5 @@
       openPlayer(idx, catKey);
     }
   </script>
-<!-- Code injected by live-server -->
-<script>
-	// <![CDATA[  <-- For SVG support
-	if ('WebSocket' in window) {
-		(function () {
-			function refreshCSS() {
-				var sheets = [].slice.call(document.getElementsByTagName("link"));
-				var head = document.getElementsByTagName("head")[0];
-				for (var i = 0; i < sheets.length; ++i) {
-					var elem = sheets[i];
-					var parent = elem.parentElement || head;
-					parent.removeChild(elem);
-					var rel = elem.rel;
-					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
-						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
-						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
-					}
-					parent.appendChild(elem);
-				}
-			}
-			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
-			var address = protocol + window.location.host + window.location.pathname + '/ws';
-			var socket = new WebSocket(address);
-			socket.onmessage = function (msg) {
-				if (msg.data == 'reload') window.location.reload();
-				else if (msg.data == 'refreshcss') refreshCSS();
-			};
-			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
-				console.log('Live reload enabled.');
-				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
-			}
-		})();
-	}
-	else {
-		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
-	}
-	// ]]>
-</script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"87327fcf53be41f08c37151b64e8f4d9","r":1,"spa":2}' crossorigin="anonymous"></script>
-<!-- Code injected by live-server -->
-<script>
-	// <![CDATA[  <-- For SVG support
-	if ('WebSocket' in window) {
-		(function () {
-			function refreshCSS() {
-				var sheets = [].slice.call(document.getElementsByTagName("link"));
-				var head = document.getElementsByTagName("head")[0];
-				for (var i = 0; i < sheets.length; ++i) {
-					var elem = sheets[i];
-					var parent = elem.parentElement || head;
-					parent.removeChild(elem);
-					var rel = elem.rel;
-					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
-						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
-						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
-					}
-					parent.appendChild(elem);
-				}
-			}
-			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
-			var address = protocol + window.location.host + window.location.pathname + '/ws';
-			var socket = new WebSocket(address);
-			socket.onmessage = function (msg) {
-				if (msg.data == 'reload') window.location.reload();
-				else if (msg.data == 'refreshcss') refreshCSS();
-			};
-			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
-				console.log('Live reload enabled.');
-				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
-			}
-		})();
-	}
-	else {
-		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
-	}
-	// ]]>
-</script>
 </body>
 </html>
