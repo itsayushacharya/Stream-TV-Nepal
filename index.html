@@ -25,6 +25,10 @@
     #playerModal { transition: opacity .3s ease, visibility .3s ease; }
     .text-glow { text-shadow: 0 0 20px rgba(255,255,255,.1); }
 
+    /* Mobile Menu Animation */
+    #mobileMenu { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+    #mobileMenu.open { max-height: 500px; opacity: 1; }
+
     #splashScreen {
       position: fixed; inset: 0; z-index: 9999; background: #0b0f19;
       display: flex; flex-direction: column; align-items: center;
@@ -47,6 +51,9 @@
       border-radius: 9999px; animation: splashLoad 1.2s ease-in-out infinite;
     }
     @keyframes splashLoad { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+
+    @keyframes subtlePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); } 70% { box-shadow: 0 0 0 10px rgba(37,99,235,0); } }
+    .download-pulse { animation: subtlePulse 2.5s infinite; }
   </style>
 </head>
 <body class="h-full overflow-y-auto antialiased selection:bg-brand-500 selection:text-white">
@@ -63,21 +70,107 @@
   <header class="sticky top-0 z-40 bg-[#0b0f19]/90 backdrop-blur-md border-b border-slate-800">
     <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
-        <div class="flex items-center font-black text-2xl tracking-tighter cursor-pointer" onclick="showView('home')">
+        
+        <!-- Logo -->
+        <div class="flex items-center font-black text-2xl tracking-tighter cursor-pointer shrink-0" onclick="showView('home')">
           <span class="text-blue-500 mr-1">Stream</span><span class="text-white">TV Nepal</span>
         </div>
-        <nav class="flex items-center gap-5 sm:gap-8 h-full overflow-x-auto">
+
+        <!-- Desktop Navigation -->
+        <nav class="hidden md:flex items-center gap-5 sm:gap-8 h-full">
           <a href="#" data-nav="home" onclick="showView('home'); return false;" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors active"><i class="fa-solid fa-house"></i> Home</a>
           <button data-nav="live" onclick="openLive()" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-solid fa-tv"></i> Live TV</button>
           <a href="movies.html" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-regular fa-circle-play"></i> Movies</a>
           <a href="series.html" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-solid fa-layer-group"></i> Series</a>
         </nav>
-        <div class="flex items-center space-x-5 text-slate-300">
-          <div class="relative hidden sm:block">
+
+        <!-- Right Side Actions (Desktop) -->
+        <div class="hidden md:flex items-center space-x-4">
+          
+          <!-- APP DOWNLOAD CARD -->
+          <a href="https://github.com/itsayushacharya/Stream-TV-Nepal/raw/refs/heads/main/app/stream%20tv%20nepal.apk"
+             download
+             class="group flex items-center gap-3 bg-gradient-to-r from-[#1a2332] to-[#0f172a] border border-slate-700 hover:border-brand-500 rounded-xl p-1.5 pr-4 shadow-lg transition-all duration-300"
+             title="Download Android App for smooth experience">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-brand-500/30 transition-colors">
+              <i class="fa-brands fa-android text-brand-500 text-lg"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-white font-bold text-[11px] leading-tight">Download App</span>
+              <span class="text-slate-400 text-[9px] leading-tight">Smooth experience</span>
+            </div>
+            <div class="w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center ml-1 shrink-0 download-pulse">
+              <i class="fa-solid fa-download text-white text-[10px]"></i>
+            </div>
+          </a>
+
+          <!-- Search -->
+          <div class="relative">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-            <input type="text" id="searchInput" placeholder="Search channels..." class="bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-4 py-1.5 focus:outline-none focus:border-brand-500 w-48 transition-all focus:w-64 placeholder-slate-500 text-white" oninput="filterChannels()">
+            <input type="text" id="searchInputDesktop" placeholder="Search channels..." class="bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-4 py-1.5 focus:outline-none focus:border-brand-500 w-48 transition-all focus:w-64 placeholder-slate-500 text-white" oninput="filterChannels(this.value)">
           </div>
         </div>
+
+        <!-- Mobile Actions (Search & Hamburger) -->
+        <div class="md:hidden flex items-center gap-2">
+          <!-- Mobile Search Icon Button -->
+          <button onclick="openMobileSearch()" class="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-white bg-slate-800/50 rounded-lg">
+            <i class="fa-solid fa-magnifying-glass text-lg"></i>
+          </button>
+          <!-- Hamburger Icon Button -->
+          <button onclick="toggleMobileMenu()" class="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-white bg-slate-800/50 rounded-lg">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Mobile Dropdown Menu -->
+    <div id="mobileMenu" class="md:hidden bg-[#0b0f19] border-b border-slate-800 shadow-xl">
+      <div class="px-4 pt-2 pb-6 space-y-4">
+        
+        <!-- Mobile Search -->
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+          <input type="text" id="mobileSearchInput" placeholder="Search channels..." class="w-full bg-slate-900 border border-slate-700 text-sm rounded-lg pl-9 pr-4 py-3 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white" oninput="filterChannels(this.value)" onkeydown="if(event.key === 'Enter') toggleMobileMenu()">
+        </div>
+
+        <!-- Mobile Nav Links -->
+        <nav class="flex flex-col space-y-1">
+          <a href="#" onclick="showView('home'); toggleMobileMenu(); return false;" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors">
+            <i class="fa-solid fa-house w-5 text-center text-blue-500"></i> Home
+          </a>
+          <button onclick="openLive(); toggleMobileMenu();" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors w-full text-left">
+            <i class="fa-solid fa-tv w-5 text-center text-blue-500"></i> Live TV
+          </button>
+          <a href="movies.html" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors">
+            <i class="fa-regular fa-circle-play w-5 text-center text-blue-500"></i> Movies
+          </a>
+          <a href="series.html" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors">
+            <i class="fa-solid fa-layer-group w-5 text-center text-blue-500"></i> Series
+          </a>
+        </nav>
+
+        <!-- Mobile App Download Card -->
+        <a href="https://github.com/itsayushacharya/Stream-TV-Nepal/raw/refs/heads/main/app/stream%20tv%20nepal.apk"
+           download
+           class="flex items-center justify-between bg-gradient-to-r from-[#1a2332] to-[#0f172a] border border-slate-700 rounded-xl p-3 shadow-lg mt-2"
+           title="Download Android App">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-brand-500/20 rounded-lg flex items-center justify-center shrink-0">
+              <i class="fa-brands fa-android text-brand-500 text-xl"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-white font-bold text-sm">Download App</span>
+              <span class="text-slate-400 text-xs">Smooth experience</span>
+            </div>
+          </div>
+          <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center shrink-0 download-pulse">
+            <i class="fa-solid fa-download text-white text-xs"></i>
+          </div>
+        </a>
+
       </div>
     </div>
   </header>
@@ -118,7 +211,6 @@
   <!-- PLAYER MODAL -->
   <div id="playerModal" class="fixed inset-0 z-50 bg-[#0b0f19] hidden opacity-0 overflow-y-auto">
     <div class="max-w-[1600px] mx-auto p-3 sm:p-5 grid gap-4 lg:grid-cols-[1fr_400px] lg:h-full lg:grid-rows-1">
-
       <div class="flex flex-col gap-4 min-h-0">
         <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800">
           <video id="videoPlayer" class="w-full h-full object-contain bg-black" controls autoplay playsinline></video>
@@ -137,7 +229,6 @@
             </button>
           </div>
         </div>
-
         <div class="flex items-center gap-4 bg-[#161b26] border border-slate-800 rounded-xl p-4">
           <div class="w-12 h-12 rounded bg-white flex items-center justify-center overflow-hidden shrink-0">
             <img id="onNowLogo" class="max-w-full max-h-full object-contain" />
@@ -149,7 +240,6 @@
           <button onclick="closePlayer()" class="border border-blue-500/60 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-500/10">Back to Home</button>
         </div>
       </div>
-
       <aside class="flex flex-col gap-3 min-h-0 h-[70vh] lg:h-full">
         <div class="flex items-center gap-2 bg-[#111827] border border-slate-800 rounded-xl p-2">
           <div class="flex gap-1 overflow-x-auto text-sm font-semibold" id="filterTabs"></div>
@@ -163,6 +253,27 @@
   </div>
 
   <script>
+    // ===================== MOBILE MENU & SEARCH =====================
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('open');
+    }
+
+    function openMobileSearch() {
+      const menu = document.getElementById('mobileMenu');
+      const input = document.getElementById('mobileSearchInput');
+      
+      // If menu is closed, open it
+      if (!menu.classList.contains('open')) {
+        menu.classList.add('open');
+      }
+      
+      // Focus the input so the mobile keyboard pops up
+      setTimeout(() => {
+        input.focus();
+      }, 300); // Wait for the slide-down animation to finish
+    }
+
     // ===================== SPLASH =====================
     (function initSplash() {
       const splash = document.getElementById('splashScreen');
@@ -202,9 +313,6 @@
 
     // ===================== CHANNELS DATA =====================
     const staticChannels = [
-      // ---- NEPALI ----
-      
-      // ---- ENTERTAINMENT ----
       { id: "star-plus", name: "Star Plus", category: "Entertainment", categoryKey: "entertainment", logoText: "SP",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTn2-m9-_smm4H59l5-7HpMb0i80SFTJ8LQTF8IgoaFPw&s=10", badge: "HD",
         url: "https://d1rc86nwwc9fag.cloudfront.net/260723/starplusuk_2500/chunklist.m3u8" },
@@ -217,13 +325,9 @@
       { id: "and-tv-hd", name: "&TV HD", category: "Entertainment", categoryKey: "entertainment", logoText: "&TV",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTwA4TUz7FLhcMAB_Oby0_6fPz4DK9hwr2Xwxb5KeVSNQ&s=10", badge: "HD",
         url: "https://3f56f997.wurl.com/manifest/f36d25e7e52f1ba8d7e56eb859c636563214f541/U2Ftc3VuZy1nYl9BbmRUVl9ITFM/62ee2b4c-539c-4838-abb7-b105ad18061d/5.m3u8" },
-
-      // ---- SPORTS ----
       { id: "dd-sports-hd", name: "DD Sports HD", category: "Sports", categoryKey: "sports", logoText: "DDS",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIp1mbSgFtwwA0HxPug2c-yCdWIoygfy822UaKHcsIxw&s", badge: "HD",
         url: "https://mumbai-edge.smartplaytv.in/DDSportsHD/tracks-v1a1/mono.m3u8" },
-
-      // ---- MOVIES ----
       { id: "b4umovies", name: "B4U Movies", category: "Movies", categoryKey: "movies", logoText: "B4U",
         logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEnzxdP8-VmS1m5nxukY7H-EI3TiuHbD7D7I-CZQYGkg&s", badge: "HD",
         url: "https://streams.tangotv.in/B4UMOVIES/ORIGIN/index.m3u8" }
@@ -231,13 +335,11 @@
 
     let channels = [...staticChannels];
 
-    // ===================== PLAYLISTS =====================
     const PLAYLISTS = [
       { name: "India (Hindi & more)", url: "https://iptv-org.github.io/iptv/countries/in.m3u", defaultCategory: "entertainment" },
       { name: "Nepal", url: "https://iptv-org.github.io/iptv/countries/np.m3u", defaultCategory: "nepali" }
     ];
 
-    // ===================== CATEGORY META / ORDER =====================
     const CATEGORY_META = {
       "nepali":        { label: "Nepali",         color: "border-red-500"     },
       "news":          { label: "News",           color: "border-sky-500"     },
@@ -249,7 +351,6 @@
     };
     const CATEGORY_ORDER = ["nepali", "news", "entertainment", "music", "sports", "movies", "kids"];
 
-    // ===================== M3U PARSER =====================
     function detectCategory(groupTitle, name, defaultCategory) {
       const g = (groupTitle || '').toLowerCase();
       const n = (name || '').toLowerCase();
@@ -295,7 +396,6 @@
       return out;
     }
 
-    // ===================== HOME — dynamic category rows =====================
     const dynamicRowsEl = document.getElementById('dynamicRows');
 
     function createChannelCard(ch, i) {
@@ -318,7 +418,6 @@
     }
 
     function renderHomeRows() {
-      // Group channels by category
       const groups = {};
       CATEGORY_ORDER.forEach(k => groups[k] = []);
       channels.forEach((ch, i) => {
@@ -331,7 +430,6 @@
         const items = groups[key];
         if (!items.length) continue;
         const meta = CATEGORY_META[key];
-        // Show max 14 per row on home (keeps it tidy); user can see the rest in player panel
         const preview = items.slice(0, 14);
         html += `
           <section id="${key}-section">
@@ -352,8 +450,9 @@
     function renderChannels() { renderHomeRows(); }
     renderChannels();
 
-    function filterChannels() {
-      const q = document.getElementById('searchInput').value.toLowerCase();
+    // Unified filter function for both desktop and mobile search inputs
+    function filterChannels(query) {
+      const q = query.toLowerCase();
       document.querySelectorAll('.channel-card').forEach(card => {
         card.style.display = card.querySelector('p').textContent.toLowerCase().includes(q) ? 'flex' : 'none';
       });
@@ -363,7 +462,6 @@
       document.getElementById(key + '-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // ===================== LOAD PLAYLISTS =====================
     async function loadPlaylists() {
       const loaded = [];
       for (const p of PLAYLISTS) {
@@ -387,7 +485,6 @@
     }
     loadPlaylists();
 
-    // ===================== NAV / VIEWS =====================
     let currentView = 'home';
     function setNav(name) {
       document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === name));
@@ -402,7 +499,6 @@
     }
     function openLive() { setNav('live'); openPlayer(0); }
 
-    // ===================== PLAYER =====================
     const playerModal = document.getElementById('playerModal');
     const video = document.getElementById('videoPlayer');
     const modalChannelTitle = document.getElementById('modalChannelTitle');
@@ -546,85 +642,8 @@
       if (e.key === 'Escape' && !playerModal.classList.contains('hidden')) closePlayer();
     });
 
-    // Initial filter tabs build (static channels before playlists load)
     buildFilterTabs();
     setFilter('all');
   </script>
-<!-- Code injected by live-server -->
-<script>
-	// <![CDATA[  <-- For SVG support
-	if ('WebSocket' in window) {
-		(function () {
-			function refreshCSS() {
-				var sheets = [].slice.call(document.getElementsByTagName("link"));
-				var head = document.getElementsByTagName("head")[0];
-				for (var i = 0; i < sheets.length; ++i) {
-					var elem = sheets[i];
-					var parent = elem.parentElement || head;
-					parent.removeChild(elem);
-					var rel = elem.rel;
-					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
-						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
-						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
-					}
-					parent.appendChild(elem);
-				}
-			}
-			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
-			var address = protocol + window.location.host + window.location.pathname + '/ws';
-			var socket = new WebSocket(address);
-			socket.onmessage = function (msg) {
-				if (msg.data == 'reload') window.location.reload();
-				else if (msg.data == 'refreshcss') refreshCSS();
-			};
-			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
-				console.log('Live reload enabled.');
-				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
-			}
-		})();
-	}
-	else {
-		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
-	}
-	// ]]>
-</script>
-<!-- Code injected by live-server -->
-<script>
-	// <![CDATA[  <-- For SVG support
-	if ('WebSocket' in window) {
-		(function () {
-			function refreshCSS() {
-				var sheets = [].slice.call(document.getElementsByTagName("link"));
-				var head = document.getElementsByTagName("head")[0];
-				for (var i = 0; i < sheets.length; ++i) {
-					var elem = sheets[i];
-					var parent = elem.parentElement || head;
-					parent.removeChild(elem);
-					var rel = elem.rel;
-					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
-						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
-						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
-					}
-					parent.appendChild(elem);
-				}
-			}
-			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
-			var address = protocol + window.location.host + window.location.pathname + '/ws';
-			var socket = new WebSocket(address);
-			socket.onmessage = function (msg) {
-				if (msg.data == 'reload') window.location.reload();
-				else if (msg.data == 'refreshcss') refreshCSS();
-			};
-			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
-				console.log('Live reload enabled.');
-				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
-			}
-		})();
-	}
-	else {
-		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
-	}
-	// ]]>
-</script>
 </body>
 </html>
