@@ -75,28 +75,6 @@
     .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
     .hscroll > * { scroll-snap-align: start; }
 
-    #splashScreen {
-      position: fixed; inset: 0; z-index: 9999; background: #0b0f19;
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 1.5rem;
-      transition: opacity .4s ease, visibility .4s ease;
-    }
-    #splashScreen.splash-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-    @keyframes splashPulse { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.06); opacity: 1; } }
-    #splashScreen img {
-      width: 110px; height: 110px; object-fit: contain;
-      border-radius: 22px; animation: splashPulse 2s ease-in-out infinite;
-      filter: drop-shadow(0 0 25px rgba(37,99,235,.45));
-    }
-    #splashScreen .splash-title { font-size: 1.6rem; font-weight: 900; letter-spacing: -.02em; }
-    #splashScreen .splash-loader { width: 160px; height: 4px; background: #1e293b; border-radius: 9999px; overflow: hidden; margin-top: .5rem; }
-    #splashScreen .splash-loader span {
-      display: block; height: 100%; width: 40%;
-      background: linear-gradient(90deg, #2563eb, #60a5fa);
-      border-radius: 9999px; animation: splashLoad 1.2s ease-in-out infinite;
-    }
-    @keyframes splashLoad { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
-
     #playerModal { transition: opacity .2s ease; }
 
     .bnav-item { color: #64748b; transition: color .15s ease; }
@@ -106,14 +84,6 @@
   </style>
 </head>
 <body class="h-full antialiased selection:bg-brand-500 selection:text-white">
-
-  <div id="splashScreen">
-    <img src="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png" alt="Stream TV Nepal" />
-    <div class="splash-title text-center">
-      <span class="text-blue-500">Stream</span><span class="text-white">&nbsp;TV Nepal</span>
-    </div>
-    <div class="splash-loader"><span></span></div>
-  </div>
 
   <div id="appShell">
     <header class="app-header sticky top-0 z-40 bg-[#0b0f19] border-b border-slate-800">
@@ -259,15 +229,6 @@
   </div>
 
   <script>
-    (function initSplash() {
-      const splash = document.getElementById('splashScreen');
-      if (sessionStorage.getItem('stn_splash_shown')) { splash.classList.add('splash-hidden'); return; }
-      sessionStorage.setItem('stn_splash_shown', '1');
-      const hide = () => setTimeout(() => splash.classList.add('splash-hidden'), 500);
-      if (document.readyState === 'complete') hide(); else window.addEventListener('load', hide);
-      setTimeout(() => splash.classList.add('splash-hidden'), 2500);
-    })();
-
     (function androidBack() {
       let pushed = false;
       window.__androidGuard = {
