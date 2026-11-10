@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
     tailwind.config = { theme: { extend: {
-      colors: { brand: { 500: '#2563eb', 600: '#1d4ed8' } },
+      colors: { brand: { 500: '#2563eb', 600: '#1d4ed8' }, dark: '#0b0f19' },
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
     } } }
   </script>
@@ -18,33 +18,128 @@
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #0b0f19; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
     .nav-item.active { color: #3b82f6; border-bottom-color: #3b82f6; }
     .no-sb { scrollbar-width: none; } .no-sb::-webkit-scrollbar { display: none; }
     .movie-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
     .movie-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0,0,0,.5); border-color: rgba(37,99,235,.5); }
     .row-scroll { scroll-behavior: smooth; }
+
+    /* Mobile Menu Animation */
+    #mobileMenu { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+    #mobileMenu.open { max-height: 600px; opacity: 1; }
+
+    @keyframes subtlePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); } 70% { box-shadow: 0 0 0 10px rgba(37,99,235,0); } }
+    .download-pulse { animation: subtlePulse 2.5s infinite; }
   </style>
 </head>
 <body class="h-full overflow-y-auto antialiased selection:bg-brand-500 selection:text-white">
 
-  <!-- HEADER (same as index.html) -->
+  <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-[#0b0f19]/90 backdrop-blur-md border-b border-slate-800">
     <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
-        <a href="index.html" class="flex items-center font-black text-2xl tracking-tighter">
+
+        <!-- Logo -->
+        <a href="index.html" class="flex items-center font-black text-2xl tracking-tighter shrink-0">
           <span class="text-blue-500 mr-1">Stream</span><span class="text-white">TV Nepal</span>
         </a>
-        <nav class="flex items-center gap-5 sm:gap-8 h-full overflow-x-auto no-sb">
-          <a href="index.html" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-solid fa-house"></i> Home</a>
-          <a href="index.html#live" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-solid fa-tv"></i> Live TV</a>
-          <a href="movies.html" class="nav-item active flex items-center gap-2 text-sm font-semibold border-b-2 border-transparent h-full px-1 whitespace-nowrap"><i class="fa-regular fa-circle-play"></i> Movies</a>
-          <a href="series.html" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-solid fa-layer-group"></i> Series</a>
-       <!--  <button data-nav="sport" onclick="openSport()" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-regular fa-futbol"></i> Sport</button>-->
+
+        <!-- Desktop Navigation -->
+        <nav class="hidden md:flex items-center gap-5 sm:gap-8 h-full">
+          <a href="index.html" data-nav="home" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-solid fa-house"></i> Home</a>
+          <a href="index.html#live" data-nav="live" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-solid fa-tv"></i> Live TV</a>
+          <a href="movies.html" data-nav="movies" class="nav-item active flex items-center gap-2 text-sm font-semibold border-b-2 border-transparent h-full px-1 whitespace-nowrap"><i class="fa-regular fa-circle-play"></i> Movies</a>
+          <a href="series.html" data-nav="series" class="nav-item flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white border-b-2 border-transparent h-full px-1 whitespace-nowrap transition-colors"><i class="fa-solid fa-layer-group"></i> Series</a>
         </nav>
-        <div class="relative hidden sm:block">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-          <input id="searchInput" type="text" placeholder="Search movies..." oninput="render()" class="bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-4 py-1.5 focus:outline-none focus:border-brand-500 w-48 transition-all focus:w-64 placeholder-slate-500 text-white">
+
+        <!-- Right Side Actions (Desktop) -->
+        <div class="hidden md:flex items-center space-x-4">
+
+          <!-- APP DOWNLOAD CARD -->
+          <a href="https://github.com/itsayushacharya/Stream-TV-Nepal/raw/refs/heads/main/app/Stream%20Tv%20Nepal.apk"
+             download
+             class="group flex items-center gap-3 bg-gradient-to-r from-[#1a2332] to-[#0f172a] border border-slate-700 hover:border-brand-500 rounded-xl p-1.5 pr-4 shadow-lg transition-all duration-300"
+             title="Download Android App for smooth experience">
+            <div class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-brand-500/30 transition-colors">
+              <i class="fa-brands fa-android text-brand-500 text-lg"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-white font-bold text-[11px] leading-tight">Download App</span>
+              <span class="text-slate-400 text-[9px] leading-tight">Smooth experience</span>
+            </div>
+            <div class="w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center ml-1 shrink-0 download-pulse">
+              <i class="fa-solid fa-download text-white text-[10px]"></i>
+            </div>
+          </a>
+
+          <!-- Search -->
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+            <input type="text" id="searchInputDesktop" placeholder="Search movies..." class="bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-4 py-1.5 focus:outline-none focus:border-brand-500 w-48 transition-all focus:w-64 placeholder-slate-500 text-white" oninput="syncSearch(this.value)">
+          </div>
         </div>
+
+        <!-- Mobile Actions (Search & Hamburger) -->
+        <div class="md:hidden flex items-center gap-2">
+          <!-- Mobile Search Icon Button -->
+          <button onclick="openMobileSearch()" class="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-white bg-slate-800/50 rounded-lg">
+            <i class="fa-solid fa-magnifying-glass text-lg"></i>
+          </button>
+          <!-- Hamburger Icon Button -->
+          <button onclick="toggleMobileMenu()" class="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-white bg-slate-800/50 rounded-lg">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Mobile Dropdown Menu -->
+    <div id="mobileMenu" class="md:hidden bg-[#0b0f19] border-b border-slate-800 shadow-xl">
+      <div class="px-4 pt-2 pb-6 space-y-4">
+
+        <!-- Mobile Search -->
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+          <input type="text" id="mobileSearchInput" placeholder="Search movies..." class="w-full bg-slate-900 border border-slate-700 text-sm rounded-lg pl-9 pr-4 py-3 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white" oninput="syncSearch(this.value)" onkeydown="if(event.key === 'Enter') toggleMobileMenu()">
+        </div>
+
+        <!-- Mobile Nav Links -->
+        <nav class="flex flex-col space-y-1">
+          <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors">
+            <i class="fa-solid fa-house w-5 text-center text-blue-500"></i> Home
+          </a>
+          <a href="index.html#live" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors">
+            <i class="fa-solid fa-tv w-5 text-center text-blue-500"></i> Live TV
+          </a>
+          <a href="movies.html" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-blue-400 bg-slate-800/50 rounded-lg">
+            <i class="fa-regular fa-circle-play w-5 text-center text-blue-500"></i> Movies
+          </a>
+          <a href="series.html" class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors">
+            <i class="fa-solid fa-layer-group w-5 text-center text-blue-500"></i> Series
+          </a>
+        </nav>
+
+        <!-- Mobile App Download Card -->
+        <a href="https://github.com/itsayushacharya/Stream-TV-Nepal/raw/refs/heads/main/app/stream%20tv%20nepal.apk"
+           download
+           class="flex items-center justify-between bg-gradient-to-r from-[#1a2332] to-[#0f172a] border border-slate-700 rounded-xl p-3 shadow-lg mt-2"
+           title="Download Android App">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-brand-500/20 rounded-lg flex items-center justify-center shrink-0">
+              <i class="fa-brands fa-android text-brand-500 text-xl"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-white font-bold text-sm">Download App</span>
+              <span class="text-slate-400 text-xs">Smooth experience</span>
+            </div>
+          </div>
+          <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center shrink-0 download-pulse">
+            <i class="fa-solid fa-download text-white text-xs"></i>
+          </div>
+        </a>
+
       </div>
     </div>
   </header>
@@ -92,6 +187,25 @@
   </div>
 
   <script>
+    // ===================== MOBILE MENU & SEARCH =====================
+    function toggleMobileMenu() {
+      document.getElementById('mobileMenu').classList.toggle('open');
+    }
+
+    function openMobileSearch() {
+      const menu = document.getElementById('mobileMenu');
+      const input = document.getElementById('mobileSearchInput');
+      if (!menu.classList.contains('open')) menu.classList.add('open');
+      setTimeout(() => input.focus(), 300);
+    }
+
+    // Keep desktop + mobile search inputs in sync
+    function syncSearch(value) {
+      document.getElementById('searchInputDesktop').value = value;
+      document.getElementById('mobileSearchInput').value = value;
+      render();
+    }
+
     // ===================== CONTENT DATABASE (source: app.js contentDatabase) =====================
     // Only entries with type === "movie" are kept here.
     const contentDatabase = [
@@ -279,11 +393,10 @@
     ];
 
     // ===================== MAP DB → movies.html SHAPE =====================
-    // movies.html expects: { category, title, year, genre, rating, poster, banner, desc, url }
     const movies = contentDatabase
-      .filter(m => m.type === "movie") // ← only movies (skip series)
+      .filter(m => m.type === "movie")
       .map(m => ({
-        category: m.industry,          // 'nepali' | 'bollywood' | 'hollywood'
+        category: m.industry,
         title: m.title,
         year: (m.releaseDate || '').slice(0, 4) || 'N/A',
         genre: m.genre,
@@ -294,7 +407,6 @@
         url: m.streamUrl || ''
       }));
 
-    // Nepali category first
     const SECTIONS = {
       nepali: 'Nepali Cinema',
       bollywood: 'Bollywood Hits',
@@ -318,7 +430,7 @@
     }
 
     function render() {
-      const q = document.getElementById('searchInput').value.toLowerCase();
+      const q = document.getElementById('searchInputDesktop').value.toLowerCase();
       const keys = cat === 'all' ? Object.keys(SECTIONS) : [cat];
       let total = 0;
       document.getElementById('rows').innerHTML = keys.map(k => {
