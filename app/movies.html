@@ -81,6 +81,7 @@
     <!-- Category chips -->
     <div class="flex gap-2 px-4 py-3 overflow-x-auto no-sb sticky top-14 z-30 bg-[#0b0f19]/95 backdrop-blur">
       <button data-cat="all" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">All</button>
+      <button data-cat="nepali" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Nepali</button>
       <button data-cat="bollywood" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Bollywood</button>
       <button data-cat="hollywood" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Hollywood</button>
     </div>
@@ -177,6 +178,24 @@
 
     // ===================== CONTENT DATABASE =====================
     const contentDatabase = [
+      /* ---------- NEPALI ---------- */
+      { id: "jerry-on-top", title: "Jerry on Top", type: "movie", genre: "Comedy / Drama", industry: "nepali", rating: "7.2",
+        poster: "https://thumb.wikimedia.org/wikipedia/en/thumb/f/f5/Jerry_on_Top.jpg/250px-Jerry_on_Top.jpg",
+        streamUrl: "https://ia801808.us.archive.org/8/items/jerry-on-top-full-movie-anmol-k.-c-jassita-gurung-aanchal-sharma-new-nepali-movie/Jerry%20on%20Top%20%E0%A4%9C%E0%A5%87%E0%A4%B0%E0%A5%80%20%E0%A4%85%E0%A4%A8%20%E0%A4%9F%E0%A4%AA%20Full%20Movie%20Anmol%20K.C%20Jassita%20Gurung%20Aanchal%20Sharma-%20New%20Nepali%20Movie.mp4",
+        releaseDate: "2025-09-12",
+        description: "A young man navigates love, friendship, and family expectations in this heartwarming Nepali comedy-drama featuring Anmol K.C., Jassita Gurung, and Aanchal Sharma." },
+      { id: "behuli-from-meghauli", title: "Behuli from Meghauli", type: "movie", genre: "Drama / Family", industry: "nepali", rating: "7.5",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRILmM0oYLE7gDiBCRf5N1fp47KAUW0JBdr_JZQeDkZ9A&s=10",
+        streamUrl: "https://ia601600.us.archive.org/29/items/behuli-from-meghauli-new-nepali-full-movie-4-k-swastima-khadka-nischal-basnet-simran-rakshya/BEHULI%20from%20MEGHAULI%20New%20Nepali%20Full%20Movie%204K%20Swastima%20Khadka%20Nischal%20Basnet%20Simran%20Rakshya.mp4",
+        releaseDate: "2025-10-24",
+        description: "A touching Nepali family drama starring Swastima Khadka and Nischal Basnet, exploring tradition, love, and the journey of a bride from Meghauli." },
+      { id: "mahapurush", title: "Mahapurush", type: "movie", genre: "Comedy / Drama", industry: "nepali", rating: "7.0",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRTeg-p6iHxj4K2uDn-MjU3Kf1GLk12mzvTWiSVIQZxRv9PErp4nZNFRFU&s=10",
+        streamUrl: "https://ia601007.us.archive.org/13/items/mahapurush-new-nepali-full-movie-2024/Mahapurush%20-%20New%20Nepali%20Full%20Movie%202024%20%20Ft.Maha%20Jodi%2C%20Gauri%20Malla%2C%20Arun%20Chhetri%2C%20Anjana%20Baraili%20-%20Kendra%20Motion%20Pictures%20%281080p%2C%20av1%29.mp4",
+        releaseDate: "2024-10-18",
+        description: "A Nepali comedy-drama featuring the beloved Maha Jodi, Gauri Malla, Arun Chhetri, and Anjana Baraili, delivering laughter and heart in this 2024 hit from Kendra Motion Pictures." },
+
+      /* ---------- BOLLYWOOD ---------- */
       { id: "Dhamaal-4", title: "Dhamaal 4", type: "movie", genre: "Comedy", industry: "bollywood", rating: "5.1",
         poster: "https://image.tmdb.org/t/p/original/oVij5aEEE6iI4PxB4i0CgKp8h0m.jpg",
         streamUrl: "https://streamimdb.ru/embed/movie/1303331", releaseDate: "2026-07-10",
@@ -225,6 +244,8 @@
         poster: "https://m.media-amazon.com/images/M/MV5BODM3MGUxMjEtMzNmYi00ODYzLTk2OTYtNzcxZmE5NmRmMjkyXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
         streamUrl: "https://streamimdb.ru/embed/movie/tt28142095", releaseDate: "2025-11-28",
         description: "An all-consuming romance set in Benaras." },
+
+      /* ---------- HOLLYWOOD ---------- */
       { id: "spider-man-2026", title: "Spider-Man: Brand New Day", type: "movie", genre: "Drama", industry: "hollywood", rating: "8.0",
         poster: "https://media.themoviedb.org/t/p/w600_and_h900_face/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg",
         streamUrl: "https://streamimdb.ru/embed/movie/969681", releaseDate: "2026-07-24",
@@ -266,7 +287,7 @@
       url: m.streamUrl || ''
     }));
 
-    const SECTIONS = { bollywood: 'Bollywood', hollywood: 'Hollywood' };
+    const SECTIONS = { nepali: 'Nepali', bollywood: 'Bollywood', hollywood: 'Hollywood' };
     let cat = 'all';
 
     function card(m, i, wide) {
