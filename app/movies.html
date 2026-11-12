@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#0b0f19] text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Movies - Stream TV Nepal</title>
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="manifest" href="manifest.json" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/itsayushacharya/Stream-TV-Nepal/refs/heads/main/images/site-icon.png">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: { brand: { 500: '#2563eb', 600: '#1d4ed8' } },
+      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+    } } }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    .no-sb { scrollbar-width: none; -ms-overflow-style: none; }
+    .no-sb::-webkit-scrollbar { display: none; }
+
+    html, body {
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      background: #0b0f19;
+    }
+    input { user-select: text; -webkit-user-select: text; }
+    img { -webkit-user-drag: none; }
+
+    .app-header { padding-top: env(safe-area-inset-top); }
+    .bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 6px); }
+    main.page { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+    .movie-card { transition: transform .15s ease; }
+    .movie-card:active { transform: scale(0.95); }
+
+    .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
+    .hscroll > * { scroll-snap-align: start; }
+
+    .bnav-item { color: #64748b; transition: color .15s ease; }
+    .bnav-item.active { color: #3b82f6; }
+
+    #detailsModal > div { animation: modalIn .25s ease-out; }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.92) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    #seekBar { -webkit-appearance: none; appearance: none; }
+    #seekBar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px; border-radius: 9999px;
+      background: #3b82f6; cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.25);
+    }
+    #seekBar::-moz-range-thumb {
+      width: 14px; height: 14px; border: 0; border-radius: 9999px;
+      background: #3b82f6; cursor: pointer;
+    }
+    #movieFrame { background: #000; }
+    #moviePlayer { background: #000; }
+  </style>
+</head>
+<body class="h-full antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- TOP APP BAR -->
+  <header class="app-header sticky top-0 z-40 bg-[#0b0f19]/95 backdrop-blur-md border-b border-slate-800">
+    <div class="flex items-center justify-between h-14 px-4">
+      <a href="index.html" class="flex items-center font-black text-xl tracking-tight">
+      <span class="text-blue-500">Stream</span><span class="text-white">&nbsp;TV Nepal</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <button onclick="toggleSearch()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+    </div>
+    <div id="searchBar" class="hidden px-4 pb-3">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+        <input type="text" id="searchInput" placeholder="Search movies..." oninput="render()"
+          class="w-full bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-10 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white">
+        <button onclick="toggleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <!-- Category chips -->
+    <div class="flex gap-2 px-4 py-3 overflow-x-auto no-sb sticky top-14 z-30 bg-[#0b0f19]/95 backdrop-blur">
+      <button data-cat="all" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">All</button>
+      <button data-cat="nepali" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Nepali</button>
+      <button data-cat="bollywood" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Bollywood</button>
+      <button data-cat="hollywood" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Hollywood</button>
+    </div>
+
+    <div id="rows" class="space-y-6 mt-2"></div>
+    <p id="emptyMsg" class="hidden text-center text-slate-500 py-20 text-sm">No movies found.</p>
+  </main>
+
+  <!-- DETAILS (centered modal) -->
+  <div id="detailsModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this)closeDetails()">
+    <div class="w-full max-w-md bg-[#161b26] border border-slate-700 rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto relative"
+      style="padding-bottom: env(safe-area-inset-bottom);">
+      <button onclick="closeDetails()" class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div id="dBanner" class="h-72 bg-slate-800 bg-cover bg-center relative">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#161b26] via-transparent to-transparent"></div>
+      </div>
+      <div class="p-5 -mt-16 relative">
+        <h2 id="dTitle" class="text-xl font-extrabold text-white mb-2"></h2>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400 mb-3">
+          <span id="dRating" class="text-yellow-400 font-bold"></span><span>•</span>
+          <span id="dYear"></span><span>•</span><span id="dGenre"></span>
+        </div>
+        <p id="dDesc" class="text-sm text-slate-300 leading-relaxed mb-5"></p>
+        <button id="dPlay" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-full text-sm inline-flex items-center justify-center gap-2 shadow-lg shadow-brand-500/30">
+          <i class="fa-solid fa-play"></i> Play Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER (fullscreen immersive) -->
+  <div id="playerModal" class="fixed inset-0 z-[60] bg-black hidden">
+    <!-- Video / iframe layer -->
+    <div class="absolute inset-0 flex items-center justify-center">
+      <video id="moviePlayer" class="w-full h-full hidden object-contain" playsinline webkit-playsinline></video>
+      <!-- SANDBOX REMOVED -->
+      <iframe id="movieFrame" class="w-full h-full hidden border-0" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
+
+      <!-- Loading spinner -->
+      <div id="playerLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 hidden">
+        <div class="w-12 h-12 rounded-full border-4 border-slate-700 border-t-brand-500 animate-spin"></div>
+        <p class="text-slate-400 text-xs mt-4">Loading…</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="playerError" class="absolute inset-0 flex-col items-center justify-center bg-black/90 z-10 hidden text-center px-6">
+        <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-3"></i>
+        <p class="text-white font-bold mb-1">Playback failed</p>
+        <p id="playerErrorMsg" class="text-slate-400 text-sm mb-5"></p>
+        <button onclick="retryPlay()" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold px-6 py-2.5 rounded-full inline-flex items-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i> Retry
+        </button>
+      </div>
+
+      <!-- No source state -->
+      <div id="noSource" class="hidden flex-col items-center text-center p-6">
+        <i class="fa-solid fa-film text-5xl text-slate-600 mb-3"></i>
+        <p class="text-white font-bold text-lg">Not available</p>
+        <p class="text-slate-500 text-sm mt-1">This title has no stream source yet.</p>
+      </div>
+    </div>
+
+    <!-- Top gradient bar + back button -->
+    <div class="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent pb-10 pointer-events-none">
+      <div class="flex items-center gap-3 px-4 pointer-events-auto"
+           style="padding-top: calc(env(safe-area-inset-top) + 12px);">
+        <button onclick="closePlayer()" class="w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white active:scale-90 transition">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <p id="playerTitle" class="text-white font-bold text-sm truncate flex-1"></p>
+        <button onclick="toggleFullscreen()" class="w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white active:scale-90 transition">
+          <i id="fsIcon" class="fa-solid fa-expand"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center tap-to-play/pause indicator (video only) -->
+    <div id="tapZone" class="absolute inset-0 z-[15] hidden"></div>
+    <div id="centerIcon" class="absolute inset-0 flex items-center justify-center pointer-events-none z-[16] opacity-0 transition-opacity duration-200">
+      <div class="w-16 h-16 rounded-full bg-black/60 backdrop-blur flex items-center justify-center">
+        <i id="centerIconGlyph" class="fa-solid fa-play text-white text-2xl"></i>
+      </div>
+    </div>
+
+    <!-- Bottom gradient + controls (video only) -->
+    <div id="videoControls" class="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 to-transparent pt-16 pb-4 px-4 hidden"
+         style="padding-bottom: calc(env(safe-area-inset-bottom) + 12px);">
+      <!-- Seek bar -->
+      <div class="flex items-center gap-3 mb-3 text-[11px] text-slate-300 font-mono">
+        <span id="curTime">0:00</span>
+        <input id="seekBar" type="range" min="0" max="100" value="0" step="0.1"
+               class="flex-1 h-1.5 rounded-full appearance-none bg-white/20 accent-brand-500 cursor-pointer">
+        <span id="durTime">0:00</span>
+      </div>
+      <!-- Buttons row -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <button onclick="togglePlay()" class="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition">
+            <i id="playIcon" class="fa-solid fa-play text-lg"></i>
+          </button>
+          <button onclick="skip(-10)" class="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition">
+            <i class="fa-solid fa-rotate-left text-base"></i>
+          </button>
+          <button onclick="skip(10)" class="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition">
+            <i class="fa-solid fa-rotate-right text-base"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="toggleMute()" class="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition">
+            <i id="volIcon" class="fa-solid fa-volume-high text-base"></i>
+          </button>
+          <button onclick="cycleRate()" class="px-3 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold bg-white/10 active:scale-90 transition">
+            <span id="rateLabel">1×</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-slate-800">
+    <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
+      <a href="index.html" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-house text-lg"></i><span class="text-[10px] font-semibold">Home</span>
+      </a>
+      <a href="index.html" onclick="setTimeout(()=>location.href='index.html',50); return false;" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-tv text-lg"></i><span class="text-[10px] font-semibold">Live</span>
+      </a>
+      <a href="movies.html" class="bnav-item active flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-film text-lg"></i><span class="text-[10px] font-semibold">Movies</span>
+      </a>
+      <a href="series.html" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-layer-group text-lg"></i><span class="text-[10px] font-semibold">Series</span>
+      </a>
+    </div>
+  </nav>
+
+  <script>
+    // SEARCH
+    function toggleSearch() {
+      const bar = document.getElementById('searchBar');
+      bar.classList.toggle('hidden');
+      if (!bar.classList.contains('hidden')) document.getElementById('searchInput').focus();
+    }
+
+    // ANDROID BACK
+    (function androidBack() {
+      let pushed = false;
+      window.__androidGuard = {
+        pushGuard() { if (!pushed) { history.pushState({ g: 1 }, ''); pushed = true; } },
+        popGuard() { if (pushed) { history.back(); pushed = false; } }
+      };
+      window.addEventListener('popstate', () => {
+        pushed = false;
+        const pm = document.getElementById('playerModal');
+        if (pm && !pm.classList.contains('hidden')) { closePlayer(); return; }
+        const dm = document.getElementById('detailsModal');
+        if (dm && !dm.classList.contains('hidden')) { closeDetails(); return; }
+        location.href = 'index.html';
+      });
+    })();
+
+    // ===================== CONTENT DATABASE =====================
+    const contentDatabase = [
+      /* ---------- NEPALI ---------- */
+      { id: "jerry-on-top", title: "Jerry on Top", type: "movie", genre: "Comedy / Drama", industry: "nepali", rating: "7.2",
+        poster: "https://thumb.wikimedia.org/wikipedia/en/thumb/f/f5/Jerry_on_Top.jpg/250px-Jerry_on_Top.jpg",
+        streamUrl: "https://ia601808.us.archive.org/8/items/jerry-on-top-full-movie-anmol-k.-c-jassita-gurung-aanchal-sharma-new-nepali-movie/Jerry%20on%20Top%20%E0%A4%9C%E0%A5%87%E0%A4%B0%E0%A5%80%20%E0%A4%85%E0%A4%A8%20%E0%A4%9F%E0%A4%AA%20Full%20Movie%20Anmol%20K.C%20Jassita%20Gurung%20Aanchal%20Sharma-%20New%20Nepali%20Movie.ia.mp4",
+        releaseDate: "2025-09-12",
+        description: "A young man navigates love, friendship, and family expectations in this heartwarming Nepali comedy-drama featuring Anmol K.C., Jassita Gurung, and Aanchal Sharma." },
+      { id: "behuli-from-meghauli", title: "Behuli from Meghauli", type: "movie", genre: "Drama / Family", industry: "nepali", rating: "7.5",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRILmM0oYLE7gDiBCRf5N1fp47KAUW0JBdr_JZQeDkZ9A&s=10",
+        streamUrl: "https://ia801600.us.archive.org/29/items/behuli-from-meghauli-new-nepali-full-movie-4-k-swastima-khadka-nischal-basnet-simran-rakshya/BEHULI%20from%20MEGHAULI%20New%20Nepali%20Full%20Movie%204K%20Swastima%20Khadka%20Nischal%20Basnet%20Simran%20Rakshya.ia.mp4",
+        releaseDate: "2025-10-24",
+        description: "A touching Nepali family drama starring Swastima Khadka and Nischal Basnet, exploring tradition, love, and the journey of a bride from Meghauli." },
+      { id: "mahapurush", title: "Mahapurush", type: "movie", genre: "Comedy / Drama", industry: "nepali", rating: "7.0",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRTeg-p6iHxj4K2uDn-MjU3Kf1GLk12mzvTWiSVIQZxRv9PErp4nZNFRFU&s=10",
+        streamUrl: "https://ia801007.us.archive.org/13/items/mahapurush-new-nepali-full-movie-2024/Mahapurush%20-%20New%20Nepali%20Full%20Movie%202024%20%20Ft.Maha%20Jodi%2C%20Gauri%20Malla%2C%20Arun%20Chhetri%2C%20Anjana%20Baraili%20-%20Kendra%20Motion%20Pictures%20%281080p%2C%20av1%29.ia.mp4",
+        releaseDate: "2024-10-18",
+        description: "A Nepali comedy-drama featuring the beloved Maha Jodi, Gauri Malla, Arun Chhetri, and Anjana Baraili, delivering laughter and heart in this 2024 hit from Kendra Motion Pictures." },
+      { id: "dayarani", title: "Dayarani", type: "movie", genre: "Drama / Family",
+        industry: "nepali", rating: "7.5",
+        poster: "https://tfnnew.in-maa-1.linodeobjects.com/uploads/medias/dayarani.jpg",
+        streamUrl: "https://ia800106.us.archive.org/35/items/dayarani-new-nepali-full-movie-2025-dayahang-rai-bijay-baral-diya-pun-shrisha-720-p-hd/DAYARANI%20__%20New%20Nepali%20Full%20Movie%202025%20_%20Dayahang%20Rai%20_%20Bijay%20Baral%20_%20Diya%20Pun%20_%20Shrisha%28720P_HD%29.mp4",
+        releaseDate: "2025-10-24",
+        description: "A powerful Nepali drama starring Dayahang Rai, Bijay Baral, Diya Pun, and Shrisha, exploring family bonds, love, and the struggles of life in Nepal." },
+
+      /* ---------- BOLLYWOOD ---------- */
+      { id: "Dhamaal-4", title: "Dhamaal 4", type: "movie", genre: "Comedy", industry: "bollywood", rating: "5.1",
+        poster: "https://image.tmdb.org/t/p/original/oVij5aEEE6iI4PxB4i0CgKp8h0m.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/1303331", releaseDate: "2026-07-10",
+        description: "The Dhamaal crew reunites for another wild chase, this time scrambling after the legendary Treasure of Life." },
+      { id: "Alpha-2026", title: "Alpha (2026)", type: "movie", genre: "Action / Thriller", industry: "bollywood", rating: "5.1",
+        poster: "https://image.tmdb.org/t/p/w500/bPtRt3ajQ0EkyeQ1O6iJwAIi9Py.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/1122030", releaseDate: "2026-07-02",
+        description: "When Sita, a highly trained assassin raised in isolation, discovers the dark truth about her family, she teams up with her long lost sister to take down her creator." },
+      { id: "bhooth-bangla-2026", title: "Bhooth Bangla (2026)", type: "movie", genre: "Horror / Comedy", industry: "bollywood", rating: "7.9",
+        poster: "https://m.media-amazon.com/images/M/MV5BN2Y3NjRhYmMtNWVjMy00ZmE1LWJkNGYtNDY3Y2I3NjkzOGE0XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt29540862", releaseDate: "2026-04-10",
+        description: "A thrilling blend of horror and comedy featuring laughter, suspense, and supernatural twists." },
+      { id: "Maa-Behen", title: "Maa Behen", type: "movie", genre: "Thriller/Comedy", industry: "bollywood", rating: "5.5",
+        poster: "https://m.media-amazon.com/images/M/MV5BZGZjMGRjN2QtZWM4Ni00NjVjLWFjZjMtMmJmNjg2ZjQ1ZmZmXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt33538438", releaseDate: "2026-06-04",
+        description: "Rekha and her daughters discover a dead body in their kitchen. The squabbling trio must cover up the crime." },
+      { id: "dhurandhar-therevenge-2026", title: "Dhurandhar: The Revenge", type: "movie", genre: "Thriller/Spy", industry: "bollywood", rating: "8.3",
+        poster: "https://m.media-amazon.com/images/M/MV5BNDhjNThiMjQtNTc0ZS00MjAxLTgyODItNDFkZjI5YjU0MDJhXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt39139925", releaseDate: "2026-03-19",
+        description: "Jaskirat Singh Rangi descends deeper into Karachi's underworld in this gritty spy thriller." },
+      { id: "dhurandhar", title: "Dhurandhar", type: "movie", genre: "Thriller/Spy", industry: "bollywood", rating: "8.3",
+        poster: "https://m.media-amazon.com/images/M/MV5BMzJhMzQ0MGItMWIxOC00NzkwLWJkNDktYjgyZGMwN2U2ZDEwXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt31969779", releaseDate: "2025-12-05",
+        description: "A mysterious traveler rises through Karachi's underworld with lethal precision." },
+      { id: "O-Romeo", title: "O' Romeo", type: "movie", genre: "Thriller", industry: "bollywood", rating: "5.2",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtlBBJrvGWNZ81aGY0g6KQPa9_qPyAnemfjTlp621a4g&s=10",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt28089700", releaseDate: "2026-02-13",
+        description: "Post-independence Mumbai, the underworld rises amidst a changing city." },
+      { id: "Raid 2", title: "Raid 2", type: "movie", genre: "Thriller", industry: "bollywood", rating: "6.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BOTI4YWMzOGYtODkzYS00NTEyLWFmMzYtMzJkOGZmOWZlNThhXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt13451410", releaseDate: "2025-05-01",
+        description: "IPS officer Patnaik investigates Dada Bhai, a respected local figure in Bhoj." },
+      { id: "saiyara", title: "Saiyaara", type: "movie", genre: "Romance", industry: "bollywood", rating: "6.3",
+        poster: "https://m.media-amazon.com/images/M/MV5BMTk2ZmFhYjctYWZiYy00N2IxLWEzMWItZGRiMDY4ZDQwZWFlXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt28037987", releaseDate: "2025-07-18",
+        description: "Vaani meets angry musician Krish. Her poetry ignites his songs, but fame threatens their love." },
+      { id: "Dhadak-2-2025", title: "Dhadak 2", type: "movie", genre: "Romance", industry: "bollywood", rating: "6.8",
+        poster: "https://m.media-amazon.com/images/M/MV5BY2EzN2UxMDItZTk2NC00NDcwLTliYjktNWI4ZWJjZTQ1ZTg2XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt27996020", releaseDate: "2025-08-01",
+        description: "A student fights off bullies to protect his forbidden love." },
+      { id: "Jolly-LLB-3", title: "Jolly LLB 3", type: "movie", genre: "Comedy", industry: "bollywood", rating: "6.4",
+        poster: "https://m.media-amazon.com/images/M/MV5BMDQ3OTFkNzUtYjM4OC00ZGFlLTliZTEtMTNiY2U2YzVkNDg3XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt27996020", releaseDate: "2025-09-19",
+        description: "Two Jollys clash in a courtroom comedy with witty banter and wild twists." },
+      { id: "Tere-Ishk-Mein", title: "Tere Ishk Mein", type: "movie", genre: "Romance", industry: "bollywood", rating: "6.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BODM3MGUxMjEtMzNmYi00ODYzLTk2OTYtNzcxZmE5NmRmMjkyXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt28142095", releaseDate: "2025-11-28",
+        description: "An all-consuming romance set in Benaras." },
+
+      /* ---------- HOLLYWOOD ---------- */
+      { id: "spider-man-2026", title: "Spider-Man: Brand New Day", type: "movie", genre: "Drama", industry: "hollywood", rating: "8.0",
+        poster: "https://media.themoviedb.org/t/p/w600_and_h900_face/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/969681", releaseDate: "2026-07-24",
+        description: "Fighting crime as Spider-Man in a world that doesn't remember him — a new threat emerges." },
+      { id: "your-faault", title: "Your Fault: London", type: "movie", genre: "Drama", industry: "hollywood", rating: "6.5",
+        poster: "https://m.media-amazon.com/images/M/MV5BNzI2YmMxZWItNjlhOS00ODNmLWEzYjQtYWIyNjc0ZTQwOTZlXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt36958376", releaseDate: "2026-07-17",
+        description: "A forbidden love story faces challenges as paths diverge." },
+      { id: "maternal-instinct", title: "Maternal Instinct", type: "movie", genre: "Crime/Documentary", industry: "hollywood", rating: "7.3",
+        poster: "https://image.pmgstatic.com/cache/resized/w663/files/images/film/posters/171/349/171349082_abhd78.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt42863533", releaseDate: "2026-05-12",
+        description: "A woman claims she just gave birth, but her story doesn't add up." },
+      { id: "shelter", title: "Shelter", type: "movie", genre: "Thriller", industry: "hollywood", rating: "6.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BMzI2ODY3MzQtYzllNy00YWM1LWExZTgtOGIwNjk2MmE2MmY2XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt32357218", releaseDate: "2026-01-30",
+        description: "A former assassin defends a stranded girl against execution squads." },
+      { id: "Over-Your-Dead-Body", title: "Over Your Dead Body", type: "movie", genre: "Thriller", industry: "hollywood", rating: "6.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BMWU2M2YyNTMtZGM4ZC00MDcwLWI3NmItZWM0YjIyOTEyNDZhXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt34685692", releaseDate: "2026-04-24",
+        description: "A dysfunctional couple retreats to a cabin, each plotting to murder the other." },
+      { id: "disclosure-day", title: "Disclosure Day", type: "movie", genre: "Sci-Fi Epic", industry: "hollywood", rating: "6.8",
+        poster: "https://m.media-amazon.com/images/M/MV5BMTgwNDI1ZjctYWNmMS00MTJhLTg1ZWItMzI1Yjk5NjZkYWFkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt15047880", releaseDate: "2026-06-12",
+        description: "If you found out we weren't alone, would that frighten you?" },
+      { id: "iam-frankelda", title: "I Am Frankelda", type: "movie", genre: "Animation", industry: "hollywood", rating: "7.0",
+        poster: "https://m.media-amazon.com/images/M/MV5BNDc3OTYxOTQtYzNkMy00YzQ5LWJlM2MtZDcwYTliZThkMWM0XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt36639986", releaseDate: "2026-06-12",
+        description: "A 19th-century Mexican writer journeys into her subconscious to face the monsters she wrote." }
+    ];
+
+    const movies = contentDatabase.filter(m => m.type === "movie").map(m => ({
+      category: m.industry,
+      title: m.title,
+      year: (m.releaseDate || '').slice(0, 4) || 'N/A',
+      genre: m.genre,
+      rating: m.rating,
+      poster: m.poster,
+      desc: m.description || '',
+      url: m.streamUrl || ''
+    }));
+
+    const SECTIONS = { nepali: 'Nepali', bollywood: 'Bollywood', hollywood: 'Hollywood' };
+    let cat = 'all';
+
+    function card(m, i, wide) {
+      return `
+        <div onclick="openDetails(${i})" class="movie-card cursor-pointer ${wide ? '' : 'shrink-0 w-28'} rounded-xl overflow-hidden bg-[#161b26] border border-slate-800">
+          <div class="aspect-[2/3] bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+            ${m.poster ? `<img src="${m.poster}" alt="${m.title}" class="w-full h-full object-cover" onerror="this.style.display='none'"/>` : `<i class="fa-solid fa-film text-3xl text-slate-600"></i>`}
+          </div>
+          <div class="p-1.5">
+            <p class="text-[11px] font-semibold text-slate-200 truncate">${m.title}</p>
+            <p class="text-[10px] text-slate-500">${m.year} • ★ ${m.rating}</p>
+          </div>
+        </div>`;
+    }
+
+    function render() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const keys = cat === 'all' ? Object.keys(SECTIONS) : [cat];
+      let total = 0;
+      document.getElementById('rows').innerHTML = keys.map(k => {
+        const list = movies.map((m, i) => ({ m, i })).filter(({ m }) => m.category === k && m.title.toLowerCase().includes(q));
+        if (!list.length) return '';
+        total += list.length;
+        const single = cat !== 'all';
+        return `
+          <section>
+            <div class="flex items-center justify-between px-4 mb-3">
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <span class="w-1 h-4 bg-brand-500 rounded-full"></span> ${SECTIONS[k]}
+              </h2>
+            </div>
+            <div class="${single ? 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 px-4' : 'hscroll no-sb flex gap-3 px-4 pb-2'}">
+              ${list.map(({ m, i }) => card(m, i, single)).join('')}
+            </div>
+          </section>`;
+      }).join('');
+      document.getElementById('emptyMsg').classList.toggle('hidden', total > 0);
+    }
+
+    document.querySelectorAll('.ctab').forEach(b => b.onclick = () => setCat(b.dataset.cat));
+    function setCat(c) {
+      cat = c;
+      document.querySelectorAll('.ctab').forEach(b => {
+        b.className = 'ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ' +
+          (b.dataset.cat === c ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-300 border border-slate-800');
+      });
+      render();
+    }
+
+    // ===================== DETAILS =====================
+    const detailsModal = document.getElementById('detailsModal');
+    function openDetails(i) {
+      const m = movies[i];
+      document.getElementById('dBanner').style.backgroundImage = m.poster ? `url('${m.poster}')` : '';
+      document.getElementById('dTitle').textContent = m.title;
+      document.getElementById('dRating').textContent = '★ ' + m.rating;
+      document.getElementById('dYear').textContent = m.year;
+      document.getElementById('dGenre').textContent = m.genre;
+      document.getElementById('dDesc').textContent = m.desc;
+      document.getElementById('dPlay').onclick = () => playMovie(m);
+      detailsModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      window.__androidGuard?.pushGuard();
+    }
+    function closeDetails() {
+      detailsModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // ===================== PLAYER =====================
+    const playerModal = document.getElementById('playerModal');
+    const vid         = document.getElementById('moviePlayer');
+    const frame       = document.getElementById('movieFrame');
+    const loader      = document.getElementById('playerLoader');
+    const errBox      = document.getElementById('playerError');
+    const errMsg      = document.getElementById('playerErrorMsg');
+    const noSource    = document.getElementById('noSource');
+    const tapZone     = document.getElementById('tapZone');
+    const centerIcon  = document.getElementById('centerIcon');
+    const centerGlyph = document.getElementById('centerIconGlyph');
+    const controls    = document.getElementById('videoControls');
+    const seekBar     = document.getElementById('seekBar');
+    const curTimeEl   = document.getElementById('curTime');
+    const durTimeEl   = document.getElementById('durTime');
+    const playIcon    = document.getElementById('playIcon');
+    const volIcon     = document.getElementById('volIcon');
+    const rateLabel   = document.getElementById('rateLabel');
+    const playerTitle = document.getElementById('playerTitle');
+    const fsIcon      = document.getElementById('fsIcon');
+
+    let hls = null;
+    let currentMovie = null;
+    let controlsTimer = null;
+    let centerIconTimer = null;
+    const rates = [1, 1.25, 1.5, 2, 0.5];
+    let rateIdx = 0;
+
+    const fmt = s => {
+      if (!isFinite(s)) return '0:00';
+      const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+      return `${m}:${sec.toString().padStart(2, '0')}`;
+    };
+
+    function stopPlayer() {
+      if (hls) { hls.destroy(); hls = null; }
+      vid.pause(); vid.removeAttribute('src'); vid.load();
+      frame.src = '';
+      [vid, frame, loader, tapZone, controls, centerIcon].forEach(e => e.classList.add('hidden'));
+      errBox.classList.add('hidden'); errBox.classList.remove('flex');
+      noSource.classList.add('hidden'); noSource.classList.remove('flex');
+      document.body.style.overflow = '';
+    }
+
+    function showErr(msg) {
+      loader.classList.add('hidden');
+      errMsg.textContent = msg || 'Something went wrong.';
+      errBox.classList.remove('hidden'); errBox.classList.add('flex');
+    }
+
+    function retryPlay() {
+      errBox.classList.add('hidden'); errBox.classList.remove('flex');
+      if (currentMovie) playMovie(currentMovie, true);
+    }
+
+    function playMovie(m, keepOpen) {
+      currentMovie = m;
+      if (!keepOpen) { closeDetails(); stopPlayer(); }
+      playerModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      window.__androidGuard?.pushGuard();
+      playerTitle.textContent = m.title || '';
+      loader.classList.remove('hidden');
+      errBox.classList.add('hidden'); errBox.classList.remove('flex');
+      noSource.classList.add('hidden'); noSource.classList.remove('flex');
+
+      if (!m.url) {
+        loader.classList.add('hidden');
+        noSource.classList.remove('hidden'); noSource.classList.add('flex');
+        return;
+      }
+
+      const isHls = /\.m3u8(\?|$)/.test(m.url);
+      const isMp4 = /\.(mp4|webm|ogg|mov)(\?|$)/.test(m.url);
+
+      if (isHls || isMp4) {
+        vid.classList.remove('hidden');
+        tapZone.classList.remove('hidden');
+        controls.classList.remove('hidden');
+        setupVideoControls();
+
+        if (isHls) {
+          if (window.Hls && Hls.isSupported()) {
+            hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+            hls.loadSource(m.url);
+            hls.attachMedia(vid);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => vid.play().catch(() => {}));
+            hls.on(Hls.Events.ERROR, (_, data) => {
+              if (data.fatal) {
+                showErr(`Stream error: ${data.type}${data.details ? ' (' + data.details + ')' : ''}`);
+              }
+            });
+          } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+            vid.src = m.url;
+            vid.play().catch(() => {});
+          } else {
+            showErr('HLS not supported in this browser.');
+          }
+        } else {
+          vid.src = m.url;
+          vid.play().catch(() => {});
+        }
+        vid.onloadedmetadata = () => {
+          loader.classList.add('hidden');
+          durTimeEl.textContent = fmt(vid.duration);
+        };
+        vid.oncanplay = () => loader.classList.add('hidden');
+        vid.onwaiting = () => { loader.classList.remove('hidden'); };
+        vid.onplaying = () => { loader.classList.add('hidden'); updatePlayIcon(); };
+        vid.onpause = updatePlayIcon;
+        vid.onerror = () => showErr('Unable to load video.');
+        vid.ontimeupdate = () => {
+          if (!vid.duration) return;
+          seekBar.value = (vid.currentTime / vid.duration) * 100;
+          curTimeEl.textContent = fmt(vid.currentTime);
+        };
+      } else {
+        // Embed iframe
+        frame.classList.remove('hidden');
+        frame.onload = () => loader.classList.add('hidden');
+        frame.src = m.url;
+        setTimeout(() => loader.classList.add('hidden'), 4000);
+      }
+    }
+
+    function setupVideoControls() {
+      playIcon.className = 'fa-solid fa-pause text-lg';
+
+      seekBar.oninput = () => {
+        if (vid.duration) vid.currentTime = (seekBar.value / 100) * vid.duration;
+        curTimeEl.textContent = fmt(vid.currentTime);
+      };
+
+      tapZone.onclick = () => {
+        if (controls.classList.contains('hidden')) {
+          showControls();
+        } else {
+          togglePlay();
+        }
+      };
+
+      vid.onplaying = () => { updatePlayIcon(); hideControlsSoon(); };
+      vid.onpause  = () => { updatePlayIcon(); showControls(); };
+
+      vid.onclick = () => flashCenter(vid.paused ? 'play' : 'pause');
+      showControls();
+    }
+
+    function updatePlayIcon() {
+      playIcon.className = (vid.paused ? 'fa-solid fa-play' : 'fa-solid fa-pause') + ' text-lg';
+      volIcon.className = (vid.muted || vid.volume === 0 ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high') + ' text-base';
+    }
+
+    function togglePlay() {
+      if (vid.paused) { vid.play().catch(() => {}); flashCenter('play'); }
+      else { vid.pause(); flashCenter('pause'); }
+      updatePlayIcon();
+    }
+
+    function skip(sec) {
+      if (!vid.duration) return;
+      vid.currentTime = Math.max(0, Math.min(vid.duration, vid.currentTime + sec));
+      flashCenter(sec > 0 ? 'forward' : 'backward');
+    }
+
+    function toggleMute() {
+      vid.muted = !vid.muted;
+      updatePlayIcon();
+      flashCenter(vid.muted ? 'mute' : 'unmute');
+    }
+
+    function cycleRate() {
+      rateIdx = (rateIdx + 1) % rates.length;
+      vid.playbackRate = rates[rateIdx];
+      rateLabel.textContent = rates[rateIdx] + '×';
+      flashCenter('rate');
+    }
+
+    function showControls() {
+      controls.classList.remove('hidden');
+      clearTimeout(controlsTimer);
+      if (!vid.paused) controlsTimer = setTimeout(hideControls, 3500);
+    }
+    function hideControls() {
+      if (!vid.paused) controls.classList.add('hidden');
+    }
+    function hideControlsSoon() {
+      clearTimeout(controlsTimer);
+      controlsTimer = setTimeout(hideControls, 3500);
+    }
+
+    function flashCenter(kind) {
+      const glyphs = {
+        play:     'fa-play',
+        pause:    'fa-pause',
+        forward:  'fa-forward',
+        backward: 'fa-backward',
+        mute:     'fa-volume-xmark',
+        unmute:   'fa-volume-high',
+        rate:     'fa-gauge-high'
+      };
+      centerGlyph.className = 'fa-solid ' + glyphs[kind] + ' text-white text-2xl';
+      centerIcon.style.opacity = '1';
+      clearTimeout(centerIconTimer);
+      centerIconTimer = setTimeout(() => centerIcon.style.opacity = '0', 600);
+    }
+
+    function toggleFullscreen() {
+      const el = playerModal;
+      if (!document.fullscreenElement) {
+        (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen)?.call(el)
+          .catch(() => {});
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+    document.addEventListener('fullscreenchange', () => {
+      fsIcon.className = document.fullscreenElement
+        ? 'fa-solid fa-compress'
+        : 'fa-solid fa-expand';
+    });
+
+    function closePlayer() {
+      stopPlayer();
+      playerModal.classList.add('hidden');
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (!playerModal.classList.contains('hidden')) closePlayer();
+      else if (!detailsModal.classList.contains('hidden')) closeDetails();
+    });
+
+    setCat('all');
+  </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"87327fcf53be41f08c37151b64e8f4d9","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
