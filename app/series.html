@@ -49,6 +49,12 @@
 
     .bnav-item { color: #64748b; transition: color .15s ease; }
     .bnav-item.active { color: #3b82f6; }
+
+    #detailsModal > div { animation: modalIn .25s ease-out; }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.92) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
   </style>
 </head>
 <body class="h-full antialiased selection:bg-brand-500 selection:text-white">
@@ -81,19 +87,17 @@
     <p id="emptyMsg" class="hidden text-center text-slate-500 py-20 text-sm">No shows found.</p>
   </main>
 
-  <div id="detailsModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md" onclick="if(event.target===this)closeDetails()">
-    <div class="absolute bottom-0 left-0 right-0 bg-[#161b26] border-t border-slate-700 rounded-t-2xl overflow-hidden max-h-[92vh] overflow-y-auto"
+  <!-- DETAILS (centered modal) -->
+  <div id="detailsModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onclick="if(event.target===this)closeDetails()">
+    <div class="w-full max-w-md bg-[#161b26] border border-slate-700 rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto relative"
       style="padding-bottom: env(safe-area-inset-bottom);">
-      <div class="flex items-center justify-center py-2">
-        <div class="w-10 h-1 bg-slate-600 rounded-full"></div>
-      </div>
       <button onclick="closeDetails()" class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center">
         <i class="fa-solid fa-xmark"></i>
       </button>
-      <div id="dBanner" class="h-56 bg-slate-800 bg-cover bg-center relative">
-        <div class="absolute inset-0 bg-gradient-to-t from-[#161b26] to-transparent"></div>
+      <div id="dBanner" class="h-72 bg-slate-800 bg-cover bg-center relative">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#161b26] via-transparent to-transparent"></div>
       </div>
-      <div class="p-5 -mt-10 relative">
+      <div class="p-5 -mt-16 relative">
         <h2 id="dTitle" class="text-xl font-extrabold text-white mb-2"></h2>
         <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400 mb-3">
           <span id="dRating" class="text-yellow-400 font-bold"></span><span>•</span>
