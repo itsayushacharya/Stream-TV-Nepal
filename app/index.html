@@ -3,20 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-  <title>Stream TV Nepal</title>
-
+  <title>Movies - Stream TV Nepal</title>
   <meta name="theme-color" content="#0b0f19" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="format-detection" content="telephone=no" />
   <link rel="manifest" href="manifest.json" />
-
-  <!-- Preconnect for speed -->
-  <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-  <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -24,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
     tailwind.config = { theme: { extend: {
-      colors: { brand: { 500: '#2563eb', 600: '#1d4ed8' }, dark: '#0b0f19' },
+      colors: { brand: { 500: '#2563eb', 600: '#1d4ed8' } },
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
     } } }
   </script>
@@ -35,200 +27,139 @@
 
     html, body {
       overscroll-behavior: none;
-      overscroll-behavior-y: contain;
-      -webkit-overflow-scrolling: touch;
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
-      touch-action: pan-x pan-y;
+      touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
       background: #0b0f19;
-      height: 100%;
-      overflow: hidden;
     }
-    input, textarea { user-select: text; -webkit-user-select: text; }
+    input { user-select: text; -webkit-user-select: text; }
     img { -webkit-user-drag: none; }
 
-    /* App shell: body fixed, main is the scroll container (kills pull-to-refresh) */
-    #appShell {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .app-header { padding-top: env(safe-area-inset-top); flex-shrink: 0; }
+    .app-header { padding-top: env(safe-area-inset-top); }
     .bottom-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 6px); }
+    main.page { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 
-    main.page {
-      position: relative;
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
-      padding-bottom: calc(80px + env(safe-area-inset-bottom));
-    }
+    .movie-card { transition: transform .15s ease; }
+    .movie-card:active { transform: scale(0.95); }
 
-    .channel-card:active, .row-card:active { transform: scale(0.95); transition: transform .08s ease; }
-    .row-card { transition: transform .15s ease; will-change: transform; }
-
-    .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+    .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
     .hscroll > * { scroll-snap-align: start; }
-
-    #playerModal { transition: opacity .2s ease; }
 
     .bnav-item { color: #64748b; transition: color .15s ease; }
     .bnav-item.active { color: #3b82f6; }
-    .bnav-item.active i { transform: translateY(-1px); }
-    .bnav-item i { transition: transform .15s ease; }
   </style>
 </head>
 <body class="h-full antialiased selection:bg-brand-500 selection:text-white">
 
-  <div id="appShell">
-    <header class="app-header sticky top-0 z-40 bg-[#0b0f19] border-b border-slate-800">
-      <div class="flex items-center justify-between h-14 px-4">
-        <div class="flex items-center font-black text-xl tracking-tight">
-          <span class="text-blue-500">Stream</span><span class="text-white">&nbsp;TV Nepal</span>
-        </div>
-        <div class="flex items-center gap-1">
-          <button onclick="toggleSearch()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-        </div>
-      </div>
-
-      <div id="searchBar" class="hidden px-4 pb-3">
-        <div class="relative">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-          <input type="text" id="searchInput" placeholder="Search channels..." oninput="filterChannels()"
-            class="w-full bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-10 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white">
-          <button onclick="toggleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400">
-            <i class="fa-solid fa-xmark text-xs"></i>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main id="homeMain" class="page relative z-10">
-
-      <section id="heroSection" class="relative mx-3 mt-3 rounded-2xl overflow-hidden bg-slate-900 border border-slate-800">
-        <div class="absolute inset-0">
-          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBxnUkh7jJ8aUJjuMHL4Uo-tBVsvSC-Bv3rxH8nB_qF9hyEmEG8CItsNAJ&s=10"
-            class="w-full h-full object-cover object-center opacity-40" alt="" loading="lazy" />
-          <div class="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-[#0b0f19]/70 to-transparent"></div>
-        </div>
-        <div class="relative p-5 pt-16">
-          <p class="text-[10px] font-bold tracking-widest text-blue-400 mb-1">STREAM TV NEPAL</p>
-          <h1 class="text-2xl font-black text-white leading-tight mb-1">
-            Your Screen, Your Stream
-          </h1>
-          <p class="text-sm text-slate-300 mb-4">Live channels, movies & shows — all in one place.</p>
-          <div class="flex gap-2">
-            <button onclick="scrollToSection('nepali-section')"
-              class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-full text-sm shadow-lg shadow-brand-500/30">
-              <i class="fa-solid fa-play mr-1.5"></i> Watch Now
-            </button>
-            <button onclick="openCategory('nepali')"
-              class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 rounded-full text-sm border border-white/10">
-              <i class="fa-solid fa-tv mr-1.5"></i> Live TV
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <div id="dynamicRows"></div>
-
-      <div class="h-6"></div>
-    </main>
-
-    <nav class="bottom-nav bg-[#0b0f19] border-t border-slate-800 flex-shrink-0">
-      <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
-        <button onclick="showView('home')" data-nav="home" class="bnav-item active flex flex-col items-center justify-center gap-0.5 px-4 py-1">
-          <i class="fa-solid fa-house text-lg"></i>
-          <span class="text-[10px] font-semibold">Home</span>
+  <!-- TOP APP BAR -->
+  <header class="app-header sticky top-0 z-40 bg-[#0b0f19]/95 backdrop-blur-md border-b border-slate-800">
+    <div class="flex items-center justify-between h-14 px-4">
+      <a href="index.html" class="flex items-center font-black text-xl tracking-tight">
+      <span class="text-blue-500">Stream</span><span class="text-white">&nbsp;TV Nepal</span>
+      </a>
+      <div class="flex items-center gap-1">
+        <button onclick="toggleSearch()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300">
+          <i class="fa-solid fa-magnifying-glass"></i>
         </button>
-        <button onclick="openCategory('nepali')" data-nav="live" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
-          <i class="fa-solid fa-tv text-lg"></i>
-          <span class="text-[10px] font-semibold">Live</span>
-        </button>
-        <a href="movies.html" data-nav="movies" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
-          <i class="fa-solid fa-film text-lg"></i>
-          <span class="text-[10px] font-semibold">Movies</span>
-        </a>
-        <a href="series.html" data-nav="series" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
-          <i class="fa-solid fa-layer-group text-lg"></i>
-          <span class="text-[10px] font-semibold">Series</span>
-        </a>
-      </div>
-    </nav>
-  </div>
-
-  <div id="playerModal" class="fixed inset-0 z-50 bg-[#0b0f19] hidden opacity-0 flex flex-col">
-
-    <div class="relative bg-black w-full shrink-0 flex flex-col" style="padding-top: env(safe-area-inset-top);">
-
-      <div class="w-full flex items-center gap-3 px-3 py-2 bg-black z-20">
-        <button onclick="closePlayer()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white shrink-0">
-          <i class="fa-solid fa-arrow-left text-sm"></i>
-        </button>
-        <div class="min-w-0 flex-1">
-          <h2 id="modalChannelTitle" class="text-white font-bold text-sm truncate">Channel Name</h2>
-          <p class="text-[10px] text-red-500 font-bold flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> LIVE
-          </p>
-        </div>
-      </div>
-
-      <div class="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden">
-        <video id="videoPlayer" class="w-full h-full object-contain" playsinline webkit-playsinline muted></video>
-
-        <div id="loadingOverlay" class="absolute inset-0 flex items-center justify-center bg-black/40 z-10 pointer-events-none">
-          <div class="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-        </div>
-
-        <div id="errorOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0b0f19]/95 hidden text-center p-6 z-10">
-          <i class="fa-solid fa-triangle-exclamation text-red-500 text-3xl mb-2"></i>
-          <h3 class="text-white font-bold text-base mb-1">Stream Unavailable</h3>
-          <p id="errorMessage" class="text-slate-400 text-xs max-w-xs mb-3"></p>
-          <button onclick="retryStream()" class="bg-brand-500 text-white px-5 py-2 rounded-full text-sm font-semibold">
-            <i class="fa-solid fa-rotate-right mr-1"></i> Retry
-          </button>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-between px-4 py-2 bg-[#161b26] border-b border-slate-800 z-20">
-        <div class="flex items-center gap-4">
-          <button onclick="togglePlay()" id="btnPlayPause" class="text-white hover:text-blue-400 transition">
-            <i class="fa-solid fa-pause text-lg"></i>
-          </button>
-          <button onclick="toggleMute()" id="btnMute" class="text-white hover:text-blue-400 transition">
-            <i class="fa-solid fa-volume-xmark text-lg"></i>
-          </button>
-        </div>
-        <div>
-          <button onclick="toggleFullscreen()" id="btnFullscreen" class="text-white hover:text-blue-400 transition">
-            <i class="fa-solid fa-expand text-lg"></i>
-          </button>
-        </div>
       </div>
     </div>
-
-    <div class="flex-1 flex flex-col overflow-hidden bg-[#0b0f19]">
-      <div class="px-3 py-3 shrink-0 bg-[#0b0f19] border-b border-slate-800/50">
-        <div class="flex gap-2 overflow-x-auto no-sb" id="filterTabs">
-          <button data-f="all" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-blue-600 text-white shadow-lg shadow-blue-500/30">All</button>
-        </div>
-      </div>
-
-      <div class="flex-1 overflow-y-auto no-sb p-3">
-        <div id="panelGrid" class="grid grid-cols-4 gap-3"></div>
+    <div id="searchBar" class="hidden px-4 pb-3">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+        <input type="text" id="searchInput" placeholder="Search movies..." oninput="render()"
+          class="w-full bg-slate-900 border border-slate-700 text-sm rounded-full pl-9 pr-10 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-500 text-white">
+        <button onclick="toggleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
       </div>
     </div>
+  </header>
 
+  <main class="page">
+    <!-- Category chips -->
+    <div class="flex gap-2 px-4 py-3 overflow-x-auto no-sb sticky top-14 z-30 bg-[#0b0f19]/95 backdrop-blur">
+      <button data-cat="all" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">All</button>
+      <button data-cat="nepali" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Nepali</button>
+      <button data-cat="bollywood" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Bollywood</button>
+      <button data-cat="hollywood" class="ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Hollywood</button>
+    </div>
+
+    <div id="rows" class="space-y-6 mt-2"></div>
+    <p id="emptyMsg" class="hidden text-center text-slate-500 py-20 text-sm">No movies found.</p>
+  </main>
+
+  <!-- DETAILS (full-screen sheet on mobile) -->
+  <div id="detailsModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md" onclick="if(event.target===this)closeDetails()">
+    <div class="absolute bottom-0 left-0 right-0 bg-[#161b26] border-t border-slate-700 rounded-t-2xl overflow-hidden max-h-[92vh] overflow-y-auto"
+      style="padding-bottom: env(safe-area-inset-bottom);">
+      <div class="flex items-center justify-center py-2">
+        <div class="w-10 h-1 bg-slate-600 rounded-full"></div>
+      </div>
+      <button onclick="closeDetails()" class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div id="dBanner" class="h-56 bg-slate-800 bg-cover bg-center relative">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#161b26] to-transparent"></div>
+      </div>
+      <div class="p-5 -mt-10 relative">
+        <h2 id="dTitle" class="text-xl font-extrabold text-white mb-2"></h2>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400 mb-3">
+          <span id="dRating" class="text-yellow-400 font-bold"></span><span>•</span>
+          <span id="dYear"></span><span>•</span><span id="dGenre"></span>
+        </div>
+        <p id="dDesc" class="text-sm text-slate-300 leading-relaxed mb-5"></p>
+        <button id="dPlay" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-full text-sm inline-flex items-center justify-center gap-2 shadow-lg shadow-brand-500/30">
+          <i class="fa-solid fa-play"></i> Play Now
+        </button>
+      </div>
+    </div>
   </div>
+
+  <!-- PLAYER (fullscreen immersive) -->
+  <div id="playerModal" class="fixed inset-0 z-[60] bg-black hidden">
+    <div class="absolute inset-0 flex items-center justify-center">
+      <video id="moviePlayer" class="w-full h-full hidden" controls autoplay playsinline></video>
+      <iframe id="movieFrame" class="w-full h-full hidden border-0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+      <div id="noSource" class="hidden flex-col items-center text-center p-6">
+        <i class="fa-solid fa-film text-5xl text-slate-600 mb-3"></i>
+        <p class="text-white font-bold text-lg">Not available</p>
+      </div>
+    </div>
+    <button onclick="closePlayer()" class="absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white"
+      style="top: calc(env(safe-area-inset-top) + 12px);">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-slate-800">
+    <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
+      <a href="index.html" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-house text-lg"></i><span class="text-[10px] font-semibold">Home</span>
+      </a>
+      <a href="index.html" onclick="setTimeout(()=>location.href='index.html',50); return false;" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-tv text-lg"></i><span class="text-[10px] font-semibold">Live</span>
+      </a>
+      <a href="movies.html" class="bnav-item active flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-film text-lg"></i><span class="text-[10px] font-semibold">Movies</span>
+      </a>
+      <a href="series.html" class="bnav-item flex flex-col items-center justify-center gap-0.5 px-4 py-1">
+        <i class="fa-solid fa-layer-group text-lg"></i><span class="text-[10px] font-semibold">Series</span>
+      </a>
+    </div>
+  </nav>
 
   <script>
+    // SEARCH
+    function toggleSearch() {
+      const bar = document.getElementById('searchBar');
+      bar.classList.toggle('hidden');
+      if (!bar.classList.contains('hidden')) document.getElementById('searchInput').focus();
+    }
+
+    // ANDROID BACK
     (function androidBack() {
       let pushed = false;
       window.__androidGuard = {
@@ -238,525 +169,245 @@
       window.addEventListener('popstate', () => {
         pushed = false;
         const pm = document.getElementById('playerModal');
-        if (pm && !pm.classList.contains('hidden') && getComputedStyle(pm).opacity !== '0') {
-          if (typeof closePlayer === 'function') closePlayer();
-          return;
-        }
+        if (pm && !pm.classList.contains('hidden')) { closePlayer(); return; }
+        const dm = document.getElementById('detailsModal');
+        if (dm && !dm.classList.contains('hidden')) { closeDetails(); return; }
+        location.href = 'index.html';
       });
     })();
 
-    function toggleSearch() {
-      const bar = document.getElementById('searchBar');
-      bar.classList.toggle('hidden');
-      if (!bar.classList.contains('hidden')) document.getElementById('searchInput').focus();
-    }
+    // ===================== CONTENT DATABASE =====================
+    const contentDatabase = [
+      /* ---------- NEPALI ---------- */
+      { id: "jerry-on-top", title: "Jerry on Top", type: "movie", genre: "Comedy / Drama", industry: "nepali", rating: "7.2",
+        poster: "https://thumb.wikimedia.org/wikipedia/en/thumb/f/f5/Jerry_on_Top.jpg/250px-Jerry_on_Top.jpg",
+        streamUrl: "https://ia601808.us.archive.org/8/items/jerry-on-top-full-movie-anmol-k.-c-jassita-gurung-aanchal-sharma-new-nepali-movie/Jerry%20on%20Top%20%E0%A4%9C%E0%A5%87%E0%A4%B0%E0%A5%80%20%E0%A4%85%E0%A4%A8%20%E0%A4%9F%E0%A4%AA%20Full%20Movie%20Anmol%20K.C%20Jassita%20Gurung%20Aanchal%20Sharma-%20New%20Nepali%20Movie.ia.mp4",
+        releaseDate: "2025-09-12",
+        description: "A young man navigates love, friendship, and family expectations in this heartwarming Nepali comedy-drama featuring Anmol K.C., Jassita Gurung, and Aanchal Sharma." },
+      { id: "behuli-from-meghauli", title: "Behuli from Meghauli", type: "movie", genre: "Drama / Family", industry: "nepali", rating: "7.5",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRILmM0oYLE7gDiBCRf5N1fp47KAUW0JBdr_JZQeDkZ9A&s=10",
+        streamUrl: "https://ia801600.us.archive.org/29/items/behuli-from-meghauli-new-nepali-full-movie-4-k-swastima-khadka-nischal-basnet-simran-rakshya/BEHULI%20from%20MEGHAULI%20New%20Nepali%20Full%20Movie%204K%20Swastima%20Khadka%20Nischal%20Basnet%20Simran%20Rakshya.ia.mp4",
+        releaseDate: "2025-10-24",
+        description: "A touching Nepali family drama starring Swastima Khadka and Nischal Basnet, exploring tradition, love, and the journey of a bride from Meghauli." },
+      { id: "mahapurush", title: "Mahapurush", type: "movie", genre: "Comedy / Drama", industry: "nepali", rating: "7.0",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRTeg-p6iHxj4K2uDn-MjU3Kf1GLk12mzvTWiSVIQZxRv9PErp4nZNFRFU&s=10",
+        streamUrl: "https://ia801007.us.archive.org/13/items/mahapurush-new-nepali-full-movie-2024/Mahapurush%20-%20New%20Nepali%20Full%20Movie%202024%20%20Ft.Maha%20Jodi%2C%20Gauri%20Malla%2C%20Arun%20Chhetri%2C%20Anjana%20Baraili%20-%20Kendra%20Motion%20Pictures%20%281080p%2C%20av1%29.ia.mp4",
+        releaseDate: "2024-10-18",
+        description: "A Nepali comedy-drama featuring the beloved Maha Jodi, Gauri Malla, Arun Chhetri, and Anjana Baraili, delivering laughter and heart in this 2024 hit from Kendra Motion Pictures." },
+      { id: "dayarani", title: "Dayarani", type: "movie", genre: "Drama / Family",
+        industry: "nepali", rating: "7.5",
+        poster: "https://tfnnew.in-maa-1.linodeobjects.com/uploads/medias/dayarani.jpg",
+        streamUrl: "https://ia800106.us.archive.org/35/items/dayarani-new-nepali-full-movie-2025-dayahang-rai-bijay-baral-diya-pun-shrisha-720-p-hd/DAYARANI%20__%20New%20Nepali%20Full%20Movie%202025%20_%20Dayahang%20Rai%20_%20Bijay%20Baral%20_%20Diya%20Pun%20_%20Shrisha%28720P_HD%29.mp4",
+        releaseDate: "2025-10-24",
+        description: "A powerful Nepali drama starring Dayahang Rai, Bijay Baral, Diya Pun, and Shrisha, exploring family bonds, love, and the struggles of life in Nepal." },
 
-    function scrollToSection(id) {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+      /* ---------- BOLLYWOOD ---------- */
+      { id: "Dhamaal-4", title: "Dhamaal 4", type: "movie", genre: "Comedy", industry: "bollywood", rating: "5.1",
+        poster: "https://image.tmdb.org/t/p/original/oVij5aEEE6iI4PxB4i0CgKp8h0m.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/1303331", releaseDate: "2026-07-10",
+        description: "The Dhamaal crew reunites for another wild chase, this time scrambling after the legendary Treasure of Life." },
+      { id: "Alpha-2026", title: "Alpha (2026)", type: "movie", genre: "Action / Thriller", industry: "bollywood", rating: "5.1",
+        poster: "https://image.tmdb.org/t/p/w500/bPtRt3ajQ0EkyeQ1O6iJwAIi9Py.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/1122030", releaseDate: "2026-07-02",
+        description: "When Sita, a highly trained assassin raised in isolation, discovers the dark truth about her family, she teams up with her long lost sister to take down her creator." },
+      { id: "bhooth-bangla-2026", title: "Bhooth Bangla (2026)", type: "movie", genre: "Horror / Comedy", industry: "bollywood", rating: "7.9",
+        poster: "https://m.media-amazon.com/images/M/MV5BN2Y3NjRhYmMtNWVjMy00ZmE1LWJkNGYtNDY3Y2I3NjkzOGE0XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt29540862", releaseDate: "2026-04-10",
+        description: "A thrilling blend of horror and comedy featuring laughter, suspense, and supernatural twists." },
+      { id: "Maa-Behen", title: "Maa Behen", type: "movie", genre: "Thriller/Comedy", industry: "bollywood", rating: "5.5",
+        poster: "https://m.media-amazon.com/images/M/MV5BZGZjMGRjN2QtZWM4Ni00NjVjLWFjZjMtMmJmNjg2ZjQ1ZmZmXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt33538438", releaseDate: "2026-06-04",
+        description: "Rekha and her daughters discover a dead body in their kitchen. The squabbling trio must cover up the crime." },
+      { id: "dhurandhar-therevenge-2026", title: "Dhurandhar: The Revenge", type: "movie", genre: "Thriller/Spy", industry: "bollywood", rating: "8.3",
+        poster: "https://m.media-amazon.com/images/M/MV5BNDhjNThiMjQtNTc0ZS00MjAxLTgyODItNDFkZjI5YjU0MDJhXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt39139925", releaseDate: "2026-03-19",
+        description: "Jaskirat Singh Rangi descends deeper into Karachi's underworld in this gritty spy thriller." },
+      { id: "dhurandhar", title: "Dhurandhar", type: "movie", genre: "Thriller/Spy", industry: "bollywood", rating: "8.3",
+        poster: "https://m.media-amazon.com/images/M/MV5BMzJhMzQ0MGItMWIxOC00NzkwLWJkNDktYjgyZGMwN2U2ZDEwXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt31969779", releaseDate: "2025-12-05",
+        description: "A mysterious traveler rises through Karachi's underworld with lethal precision." },
+      { id: "O-Romeo", title: "O' Romeo", type: "movie", genre: "Thriller", industry: "bollywood", rating: "5.2",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtlBBJrvGWNZ81aGY0g6KQPa9_qPyAnemfjTlp621a4g&s=10",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt28089700", releaseDate: "2026-02-13",
+        description: "Post-independence Mumbai, the underworld rises amidst a changing city." },
+      { id: "Raid 2", title: "Raid 2", type: "movie", genre: "Thriller", industry: "bollywood", rating: "6.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BOTI4YWMzOGYtODkzYS00NTEyLWFmMzYtMzJkOGZmOWZlNThhXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt13451410", releaseDate: "2025-05-01",
+        description: "IPS officer Patnaik investigates Dada Bhai, a respected local figure in Bhoj." },
+      { id: "saiyara", title: "Saiyaara", type: "movie", genre: "Romance", industry: "bollywood", rating: "6.3",
+        poster: "https://m.media-amazon.com/images/M/MV5BMTk2ZmFhYjctYWZiYy00N2IxLWEzMWItZGRiMDY4ZDQwZWFlXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt28037987", releaseDate: "2025-07-18",
+        description: "Vaani meets angry musician Krish. Her poetry ignites his songs, but fame threatens their love." },
+      { id: "Dhadak-2-2025", title: "Dhadak 2", type: "movie", genre: "Romance", industry: "bollywood", rating: "6.8",
+        poster: "https://m.media-amazon.com/images/M/MV5BY2EzN2UxMDItZTk2NC00NDcwLTliYjktNWI4ZWJjZTQ1ZTg2XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt27996020", releaseDate: "2025-08-01",
+        description: "A student fights off bullies to protect his forbidden love." },
+      { id: "Jolly-LLB-3", title: "Jolly LLB 3", type: "movie", genre: "Comedy", industry: "bollywood", rating: "6.4",
+        poster: "https://m.media-amazon.com/images/M/MV5BMDQ3OTFkNzUtYjM4OC00ZGFlLTliZTEtMTNiY2U2YzVkNDg3XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt27996020", releaseDate: "2025-09-19",
+        description: "Two Jollys clash in a courtroom comedy with witty banter and wild twists." },
+      { id: "Tere-Ishk-Mein", title: "Tere Ishk Mein", type: "movie", genre: "Romance", industry: "bollywood", rating: "6.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BODM3MGUxMjEtMzNmYi00ODYzLTk2OTYtNzcxZmE5NmRmMjkyXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt28142095", releaseDate: "2025-11-28",
+        description: "An all-consuming romance set in Benaras." },
 
-    // ===================== STATIC CHANNELS =====================
-    const staticChannels = [
-      // ============ NEWS ============
-      { id: "aaj-tak-hd", name: "Aaj Tak HD", categoryKey: "news", logoText: "AT", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Aaj_Tak_Logo.svg/512px-Aaj_Tak_Logo.svg.png",
-        url: "https://feeds.intoday.in/aajtak/api/aajtakhd/master.m3u8" },
-      { id: "abp-news", name: "ABP News", categoryKey: "news", logoText: "ABP", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/ABP_News_logo.svg/512px-ABP_News_logo.svg.png",
-        url: "https://d2q8xqis9o7c6e.cloudfront.net/abpnews/index.m3u8" },
-      { id: "ndtv-24x7", name: "NDTV 24x7", categoryKey: "news", logoText: "NDTV", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/NDTV_24x7_logo.svg/512px-NDTV_24x7_logo.svg.png",
-        url: "https://ndtv24x7elemarchana.akamaized.net/hls/live/2005693/ndtv24x7/ndtv24x7master.m3u8" },
-      { id: "republic-bharat", name: "Republic Bharat", categoryKey: "news", logoText: "RB", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Republic_Bharat_logo.svg/512px-Republic_Bharat_logo.svg.png",
-        url: "https://republic.pc.cdn.bitgravity.com/live/republicbharat/index.m3u8" },
-      { id: "india-today", name: "India Today", categoryKey: "news", logoText: "IT", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/India_Today_Logo.svg/512px-India_Today_Logo.svg.png",
-        url: "https://indiatodaylive.akamaized.net/hls/live/2010609/indiatodaylive/index.m3u8" },
-      { id: "news18-india", name: "News18 India", categoryKey: "news", logoText: "N18", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/News18_India_Logo.svg/512px-News18_India_Logo.svg.png",
-        url: "https://news18india-lh.akamaihd.net/i/news18india_1@192720/master.m3u8" },
-      { id: "zee-news", name: "Zee News", categoryKey: "news", logoText: "ZN", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Zee_News_logo.svg/512px-Zee_News_logo.svg.png",
-        url: "https://zeenews-lh.akamaihd.net/i/zeenews_1@192716/master.m3u8" },
-      { id: "dd-news", name: "DD News", categoryKey: "news", logoText: "DDN", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/DD_News_logo.svg/512px-DD_News_logo.svg.png",
-        url: "https://ddnews-live.akamaized.net/hls/live/2024683/ddnews/index.m3u8" },
-
-      // ============ SPORTS ============
-      { id: "dd-sports-hd", name: "DD Sports HD", categoryKey: "sports", logoText: "DDS", badge: "HD",
-        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIp1mbSgFtwwA0HxPug2c-yCdWIoygfy822UaKHcsIxw&s",
-        url: "https://mumbai-edge.smartplaytv.in/DDSportsHD/tracks-v1a1/mono.m3u8" },
-
-      // ============ MUSIC ============
-      { id: "9xm", name: "9XM", categoryKey: "music", logoText: "9XM", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/9XM_logo.svg/512px-9XM_logo.svg.png",
-        url: "https://9xjio.wiseplayout.com/9XM/master.m3u8" },
-      { id: "mtv-india", name: "MTV India", categoryKey: "music", logoText: "MTV", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/MTV_Logo_2010.svg/512px-MTV_Logo_2010.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/MTVIndia/index.m3u8" },
-      { id: "channel-v", name: "Channel V", categoryKey: "music", logoText: "V", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Channel_V_logo.svg/512px-Channel_V_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ChannelV/index.m3u8" },
-      { id: "b4u-music", name: "B4U Music", categoryKey: "music", logoText: "B4U", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/B4U_Music_logo.svg/512px-B4U_Music_logo.svg.png",
-        url: "https://streams.tangotv.in/B4UMUSIC/ORIGIN/index.m3u8" },
-      { id: "mastiii", name: "Mastiii", categoryKey: "music", logoText: "M3", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Mastiii_logo.svg/512px-Mastiii_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/Mastiii/index.m3u8" },
-
-      // ============ ENTERTAINMENT ============
-      { id: "star-plus", name: "Star Plus", categoryKey: "entertainment", logoText: "SP", badge: "HD",
-        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTn2-m9-_smm4H59l5-7HpMb0i80SFTJ8LQTF8IgoaFPw&s=10",
-        url: "https://d1rc86nwwc9fag.cloudfront.net/260723/starplusuk_2500/chunklist.m3u8" },
-      { id: "colours-hd", name: "Colours HD", categoryKey: "entertainment", logoText: "CHD", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/1/19/Colors_TV_logo.svg",
-        url: "https://da86m1sqpm3o0.cloudfront.net/28072023/smil:colorsme.smil/chunklist_b896000.m3u8" },
-      { id: "star-bharat", name: "Star Bharat", categoryKey: "entertainment", logoText: "SB", badge: "SD/HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/en/a/a7/Star_Bharat_Logo.png",
-        url: "https://d1taaads3ztvmu.cloudfront.net/120723/smil:lifeokuk.smil/chunklist_b896000.m3u8" },
-      { id: "and-tv-hd", name: "&TV HD", categoryKey: "entertainment", logoText: "&TV", badge: "HD",
-        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTwA4TUz7FLhcMAB_Oby0_6fPz4DK9hwr2Xwxb5KeVSNQ&s=10",
-        url: "https://3f56f997.wurl.com/manifest/f36d25e7e52f1ba8d7e56eb859c636563214f541/U2Ftc3VuZy1nYl9BbmRUVl9ITFM/62ee2b4c-539c-4838-abb7-b105ad18061d/5.m3u8" },
-      { id: "sony-ent", name: "Sony Entertainment", categoryKey: "entertainment", logoText: "SET", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Sony_Entertainment_Television_logo.svg/512px-Sony_Entertainment_Television_logo.svg.png",
-        url: "http://103.175.242.10:8080/sonyent10/index.m3u8" },
-      { id: "comedy-central-india", name: "Comedy Central India", categoryKey: "entertainment", logoText: "CC", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Comedy_Central_2019.svg/512px-Comedy_Central_2019.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ComedyCentralIndia/index.m3u8" },
-      { id: "discovery-india", name: "Discovery India", categoryKey: "entertainment", logoText: "DISC", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Discovery_Channel_logo_%282019%29.svg/512px-Discovery_Channel_logo_%282019%29.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/DiscoveryIndia/index.m3u8" },
-      { id: "animal-planet", name: "Animal Planet", categoryKey: "entertainment", logoText: "AP", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Animal_Planet_logo.svg/512px-Animal_Planet_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/AnimalPlanet/index.m3u8" },
-      { id: "nat-geo", name: "National Geographic", categoryKey: "entertainment", logoText: "NG", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/National_Geographic_Logo_2016.svg/512px-National_Geographic_Logo_2016.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/NatGeo/index.m3u8" },
-      { id: "history-tv", name: "History TV18", categoryKey: "entertainment", logoText: "HIST", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/History_TV18_logo.svg/512px-History_TV18_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/HistoryTV18/index.m3u8" },
-      { id: "travel-xp", name: "Travel XP", categoryKey: "entertainment", logoText: "TXP", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Travelxp_logo.svg/512px-Travelxp_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/TravelXP/index.m3u8" },
-      { id: "food-food", name: "Food Food", categoryKey: "entertainment", logoText: "FF", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/FoodFood_logo.svg/512px-FoodFood_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/FoodFood/index.m3u8" },
-      { id: "zoom", name: "Zoom", categoryKey: "entertainment", logoText: "ZOOM", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Zoom_TV_logo.svg/512px-Zoom_TV_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/Zoom/index.m3u8" },
-
-      // ============ MOVIES ============
-      { id: "b4umovies", name: "B4U Movies", categoryKey: "movies", logoText: "B4U", badge: "HD",
-        logoUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEnzxdP8-VmS1m5nxukY7H-EI3TiuHbD7D7I-CZQYGkg&s",
-        url: "https://streams.tangotv.in/B4UMOVIES/ORIGIN/index.m3u8" },
-      { id: "star-gold", name: "Star Gold", categoryKey: "movies", logoText: "SG", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Star_Gold_logo.svg/512px-Star_Gold_logo.svg.png",
-        url: "https://d1rc86nwwc9fag.cloudfront.net/260723/stargolduk_2500/chunklist.m3u8" },
-      { id: "sony-max", name: "Sony Max", categoryKey: "movies", logoText: "SM", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Sony_MAX_logo.svg/512px-Sony_MAX_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SonyMax/index.m3u8" },
-      { id: "zee-cinema", name: "Zee Cinema", categoryKey: "movies", logoText: "ZC", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Zee_Cinema_logo.svg/512px-Zee_Cinema_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ZeeCinema/index.m3u8" },
-      { id: "set-max", name: "SET Max", categoryKey: "movies", logoText: "MAX", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/SET_Max_logo.svg/512px-SET_Max_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/SETMax/index.m3u8" },
-      { id: "colors-cineplex", name: "Colors Cineplex", categoryKey: "movies", logoText: "CC", badge: "HD",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Colors_Cineplex_logo.svg/512px-Colors_Cineplex_logo.svg.png",
-        url: "https://d1l4jgwfvc1j3f.cloudfront.net/ColorsCineplex/index.m3u8" }
+      /* ---------- HOLLYWOOD ---------- */
+      { id: "spider-man-2026", title: "Spider-Man: Brand New Day", type: "movie", genre: "Drama", industry: "hollywood", rating: "8.0",
+        poster: "https://media.themoviedb.org/t/p/w600_and_h900_face/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/969681", releaseDate: "2026-07-24",
+        description: "Fighting crime as Spider-Man in a world that doesn't remember him — a new threat emerges." },
+      { id: "your-faault", title: "Your Fault: London", type: "movie", genre: "Drama", industry: "hollywood", rating: "6.5",
+        poster: "https://m.media-amazon.com/images/M/MV5BNzI2YmMxZWItNjlhOS00ODNmLWEzYjQtYWIyNjc0ZTQwOTZlXkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt36958376", releaseDate: "2026-07-17",
+        description: "A forbidden love story faces challenges as paths diverge." },
+      { id: "maternal-instinct", title: "Maternal Instinct", type: "movie", genre: "Crime/Documentary", industry: "hollywood", rating: "7.3",
+        poster: "https://image.pmgstatic.com/cache/resized/w663/files/images/film/posters/171/349/171349082_abhd78.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt42863533", releaseDate: "2026-05-12",
+        description: "A woman claims she just gave birth, but her story doesn't add up." },
+      { id: "shelter", title: "Shelter", type: "movie", genre: "Thriller", industry: "hollywood", rating: "6.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BMzI2ODY3MzQtYzllNy00YWM1LWExZTgtOGIwNjk2MmE2MmY2XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt32357218", releaseDate: "2026-01-30",
+        description: "A former assassin defends a stranded girl against execution squads." },
+      { id: "Over-Your-Dead-Body", title: "Over Your Dead Body", type: "movie", genre: "Thriller", industry: "hollywood", rating: "6.2",
+        poster: "https://m.media-amazon.com/images/M/MV5BMWU2M2YyNTMtZGM4ZC00MDcwLWI3NmItZWM0YjIyOTEyNDZhXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt34685692", releaseDate: "2026-04-24",
+        description: "A dysfunctional couple retreats to a cabin, each plotting to murder the other." },
+      { id: "disclosure-day", title: "Disclosure Day", type: "movie", genre: "Sci-Fi Epic", industry: "hollywood", rating: "6.8",
+        poster: "https://m.media-amazon.com/images/M/MV5BMTgwNDI1ZjctYWNmMS00MTJhLTg1ZWItMzI1Yjk5NjZkYWFkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt15047880", releaseDate: "2026-06-12",
+        description: "If you found out we weren't alone, would that frighten you?" },
+      { id: "iam-frankelda", title: "I Am Frankelda", type: "movie", genre: "Animation", industry: "hollywood", rating: "7.0",
+        poster: "https://m.media-amazon.com/images/M/MV5BNDc3OTYxOTQtYzNkMy00YzQ5LWJlM2MtZDcwYTliZThkMWM0XkEyXkFqcGc@._V1_.jpg",
+        streamUrl: "https://streamimdb.ru/embed/movie/tt36639986", releaseDate: "2026-06-12",
+        description: "A 19th-century Mexican writer journeys into her subconscious to face the monsters she wrote." }
     ];
 
-    // ===================== PLAYLISTS =====================
-    const PLAYLISTS = [
-      { name: "India (Hindi & more)", url: "https://iptv-org.github.io/iptv/countries/in.m3u", defaultCategory: "entertainment" },
-      { name: "Nepal", url: "https://iptv-org.github.io/iptv/countries/np.m3u", defaultCategory: "nepali" }
-    ];
+    const movies = contentDatabase.filter(m => m.type === "movie").map(m => ({
+      category: m.industry,
+      title: m.title,
+      year: (m.releaseDate || '').slice(0, 4) || 'N/A',
+      genre: m.genre,
+      rating: m.rating,
+      poster: m.poster,
+      desc: m.description || '',
+      url: m.streamUrl || ''
+    }));
 
-    const CATEGORY_META = {
-      "nepali":        { label: "Nepali",          color: "bg-red-500"     },
-      "news":          { label: "News",            color: "bg-sky-500"     },
-      "sports":        { label: "Sports",          color: "bg-green-500"   },
-      "music":         { label: "Music",           color: "bg-purple-500"  },
-      "entertainment": { label: "Entertainment",   color: "bg-amber-500"   },
-      "movies":        { label: "Movies",          color: "bg-pink-500"    },
-      "kids":          { label: "Kids",            color: "bg-cyan-500"    }
-    };
-    const CATEGORY_ORDER = ["nepali", "news", "sports", "music", "entertainment", "movies", "kids"];
+    const SECTIONS = { nepali: 'Nepali', bollywood: 'Bollywood', hollywood: 'Hollywood' };
+    let cat = 'all';
 
-    let channels = [...staticChannels];
-
-    // ===================== M3U PARSER =====================
-    function detectCategory(groupTitle, name, defaultCategory) {
-      const g = (groupTitle || '').toLowerCase();
-      const n = (name || '').toLowerCase();
-
-      if (/nepal/.test(g)) return 'nepali';
-
-      if (/sport|cricket|football|soccer|nba|tennis|f1|motogp/.test(g) || /\bsports?\b|\bcricket\b/.test(n)) return 'sports';
-      if (/music|song|mtv|vh1/.test(g) || /\bmusic\b|\bmtv\b/.test(n)) return 'music';
-      if (/kid|child|cartoon|toon|junior/.test(g) || /\bkids?\b|cartoon|\btoon\b/.test(n)) return 'kids';
-      if (/movie|cinema|film|bollywood|hollywood/.test(g) || /\bmovies?\b|\bcinema\b|\bfilms?\b/.test(n)) return 'movies';
-      if (/news/.test(g) || /\bnews\b/.test(n)) return 'news';
-      if (/entertainment|serial|drama|comedy|reality|show/.test(g)) return 'entertainment';
-
-      return defaultCategory || 'entertainment';
-    }
-
-    function parseM3U(text, playlistInfo) {
-      const lines = text.split('\n');
-      const out = [];
-      let info = null;
-      for (let line of lines) {
-        line = line.trim();
-        if (line.startsWith('#EXTINF:')) {
-          const nameMatch = line.match(/,(.*)$/);
-          const name = nameMatch ? nameMatch[1].trim() : 'Unknown';
-          const logoMatch = line.match(/tvg-logo="([^"]+)"/);
-          const groupMatch = line.match(/group-title="([^"]*)"/);
-          const groupTitle = groupMatch ? groupMatch[1] : '';
-          const categoryKey = detectCategory(groupTitle, name, playlistInfo.defaultCategory);
-          info = {
-            name,
-            logoUrl: logoMatch ? logoMatch[1] : '',
-            logoText: name.split(/[\s\-_]+/).filter(Boolean).map(w => w[0]).join('').slice(0, 4).toUpperCase() || 'TV',
-            categoryKey,
-            playlistGroup: playlistInfo.name,
-            badge: 'LIVE'
-          };
-        } else if (line && !line.startsWith('#') && info) {
-          info.url = line;
-          out.push(info);
-          info = null;
-        }
-      }
-      return out;
-    }
-
-    // ===================== RENDER HOME ROWS =====================
-    const dynamicRowsEl = document.getElementById('dynamicRows');
-
-    function rowCard(ch, i) {
+    function card(m, i, wide) {
       return `
-        <div onclick="openPlayer(${i})" class="row-card shrink-0 w-[130px] cursor-pointer bg-[#161b26] rounded-xl overflow-hidden border border-slate-800 relative">
-          ${ch.badge ? `<div class="absolute top-1 right-1 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">${ch.badge}</div>` : ''}
-          <div class="aspect-square bg-white flex items-center justify-center p-4">
-            ${ch.logoUrl
-              ? `<img src="${ch.logoUrl}" class="max-h-full object-contain" alt="${ch.name}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" /><span class="hidden text-slate-900 font-bold text-base text-center">${ch.logoText}</span>`
-              : `<span class="text-slate-900 font-bold text-base text-center">${ch.logoText}</span>`}
+        <div onclick="openDetails(${i})" class="movie-card cursor-pointer ${wide ? '' : 'shrink-0 w-28'} rounded-xl overflow-hidden bg-[#161b26] border border-slate-800">
+          <div class="aspect-[2/3] bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+            ${m.poster ? `<img src="${m.poster}" alt="${m.title}" class="w-full h-full object-cover" onerror="this.style.display='none'"/>` : `<i class="fa-solid fa-film text-3xl text-slate-600"></i>`}
           </div>
-          <div class="p-2">
-            <p class="text-[11px] font-semibold text-slate-200 truncate">${ch.name}</p>
+          <div class="p-1.5">
+            <p class="text-[11px] font-semibold text-slate-200 truncate">${m.title}</p>
+            <p class="text-[10px] text-slate-500">${m.year} • ★ ${m.rating}</p>
           </div>
         </div>`;
     }
 
-    function renderHomeRows() {
-      const groups = {};
-      channels.forEach((ch, i) => {
-        if (!ch.categoryKey) ch.categoryKey = 'entertainment';
-        if (!groups[ch.categoryKey]) groups[ch.categoryKey] = [];
-        groups[ch.categoryKey].push({ ch, i });
-      });
-
-      let html = '';
-      for (const key of CATEGORY_ORDER) {
-        const items = groups[key];
-        if (!items || !items.length) continue;
-        const meta = CATEGORY_META[key] || { label: key, color: 'bg-slate-500' };
-        html += `
-          <section id="${key}-section" class="mt-6">
+    function render() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const keys = cat === 'all' ? Object.keys(SECTIONS) : [cat];
+      let total = 0;
+      document.getElementById('rows').innerHTML = keys.map(k => {
+        const list = movies.map((m, i) => ({ m, i })).filter(({ m }) => m.category === k && m.title.toLowerCase().includes(q));
+        if (!list.length) return '';
+        total += list.length;
+        const single = cat !== 'all';
+        return `
+          <section>
             <div class="flex items-center justify-between px-4 mb-3">
-              <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <span class="w-1 h-4 ${meta.color} rounded-full"></span> ${meta.label}
-                <span class="text-[10px] text-slate-500 font-normal">(${items.length})</span>
-              </h3>
-              <button onclick="openCategory('${key}')" class="text-xs text-blue-400 font-semibold">See all <i class="fa-solid fa-chevron-right text-[9px] ml-0.5"></i></button>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <span class="w-1 h-4 bg-brand-500 rounded-full"></span> ${SECTIONS[k]}
+              </h2>
             </div>
-            <div class="hscroll no-sb flex gap-3 px-4 pb-2">
-              ${items.slice(0, 12).map(({ ch, i }) => rowCard(ch, i)).join('')}
+            <div class="${single ? 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 px-4' : 'hscroll no-sb flex gap-3 px-4 pb-2'}">
+              ${list.map(({ m, i }) => card(m, i, single)).join('')}
             </div>
           </section>`;
-      }
-      dynamicRowsEl.innerHTML = html || '<p class="px-4 py-10 text-center text-slate-500 text-sm">No channels yet — loading playlists…</p>';
+      }).join('');
+      document.getElementById('emptyMsg').classList.toggle('hidden', total > 0);
     }
-    renderHomeRows();
 
-    // ===================== LOAD PLAYLISTS (with cache) =====================
-    async function loadPlaylists() {
-      const CACHE_KEY = 'stn_playlists_v1';
-      const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
-
-      // Try cache first — instant
-      try {
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          const { ts, data } = JSON.parse(cached);
-          if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length) {
-            const seen = new Set(staticChannels.map(c => c.url));
-            const uniq = data.filter(c => c.url && !seen.has(c.url) && seen.add(c.url));
-            channels = [...staticChannels, ...uniq];
-            renderHomeRows();
-            buildFilterTabs();
-            renderPanel();
-            return;
-          }
-        }
-      } catch (e) { /* ignore cache errors */ }
-
-      // Otherwise fetch
-      const loaded = [];
-      for (const p of PLAYLISTS) {
-        try {
-          const res = await fetch(p.url);
-          const text = await res.text();
-          const chans = parseM3U(text, p);
-          loaded.push(...chans);
-        } catch (e) {
-          console.warn('Failed to load playlist', p.name, e);
-        }
-      }
-      if (loaded.length) {
-        const seen = new Set(staticChannels.map(c => c.url));
-        const uniq = loaded.filter(c => c.url && !seen.has(c.url) && seen.add(c.url));
-        channels = [...staticChannels, ...uniq];
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: uniq }));
-        } catch (e) { /* quota exceeded, ignore */ }
-        renderHomeRows();
-        buildFilterTabs();
-        renderPanel();
-      }
-    }
-    loadPlaylists();
-
-    // ===================== SEARCH =====================
-    function filterChannels() {
-      const q = document.getElementById('searchInput').value.toLowerCase();
-      document.querySelectorAll('.row-card').forEach(c => {
-        c.style.display = c.querySelector('p').textContent.toLowerCase().includes(q) ? 'block' : 'none';
+    document.querySelectorAll('.ctab').forEach(b => b.onclick = () => setCat(b.dataset.cat));
+    function setCat(c) {
+      cat = c;
+      document.querySelectorAll('.ctab').forEach(b => {
+        b.className = 'ctab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ' +
+          (b.dataset.cat === c ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-300 border border-slate-800');
       });
+      render();
     }
 
-    // ===================== PLAYER LOGIC =====================
-    const playerModal = document.getElementById('playerModal');
-    const video = document.getElementById('videoPlayer');
-    const modalChannelTitle = document.getElementById('modalChannelTitle');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const errorOverlay = document.getElementById('errorOverlay');
-    const errorMessage = document.getElementById('errorMessage');
-    const panelGrid = document.getElementById('panelGrid');
-    const btnPlayPause = document.getElementById('btnPlayPause');
-    const btnMute = document.getElementById('btnMute');
-    const btnFullscreen = document.getElementById('btnFullscreen');
-
-    let hls = null, currentUrl = '', currentIndex = -1, panelFilter = 'all';
-    let loadingTimer = null;
-
-    function togglePlay() {
-      if (video.paused) { video.play(); } else { video.pause(); }
-    }
-
-    video.addEventListener('play', () => {
-      btnPlayPause.innerHTML = '<i class="fa-solid fa-pause text-lg"></i>';
-    });
-    video.addEventListener('pause', () => {
-      btnPlayPause.innerHTML = '<i class="fa-solid fa-play text-lg"></i>';
-    });
-
-    function toggleMute() {
-      video.muted = !video.muted;
-      btnMute.innerHTML = video.muted
-        ? '<i class="fa-solid fa-volume-xmark text-lg"></i>'
-        : '<i class="fa-solid fa-volume-high text-lg"></i>';
-    }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        video.requestFullscreen().catch(err => console.log(`Fullscreen error: ${err.message}`));
-        btnFullscreen.innerHTML = '<i class="fa-solid fa-compress text-lg"></i>';
-      } else {
-        document.exitFullscreen();
-        btnFullscreen.innerHTML = '<i class="fa-solid fa-expand text-lg"></i>';
-      }
-    }
-
-    document.addEventListener('fullscreenchange', () => {
-      btnFullscreen.innerHTML = document.fullscreenElement
-        ? '<i class="fa-solid fa-compress text-lg"></i>'
-        : '<i class="fa-solid fa-expand text-lg"></i>';
-    });
-
-    function buildFilterTabs() {
-      const tabContainer = document.getElementById('filterTabs');
-      const catsInUse = new Set(channels.map(c => c.categoryKey).filter(Boolean));
-      const available = CATEGORY_ORDER.filter(k => catsInUse.has(k));
-
-      tabContainer.innerHTML =
-        `<button data-f="all" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-blue-600 text-white shadow-lg shadow-blue-500/30">All</button>` +
-        available.map(k => {
-          const label = (CATEGORY_META[k] && CATEGORY_META[k].label) || k;
-          return `<button data-f="${k}" class="ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">${label}</button>`;
-        }).join('');
-
-      tabContainer.querySelectorAll('.ptab').forEach(b => b.onclick = () => setFilter(b.dataset.f));
-    }
-
-    function renderPanel() {
-      const filtered = channels
-        .map((c, i) => ({ c, i }))
-        .filter(({ c }) => panelFilter === 'all' || c.categoryKey === panelFilter);
-
-      if (!filtered.length) {
-        panelGrid.innerHTML = `<p class="col-span-4 text-center text-slate-500 text-xs py-8">No channels in this category yet.</p>`;
-        return;
-      }
-
-      panelGrid.innerHTML = filtered.map(({ c, i: realIdx }) => `
-        <button onclick="playByIndex(${realIdx})"
-          class="w-full aspect-square rounded-xl bg-white flex items-center justify-center p-2 border-2 transition-transform active:scale-95 ${realIdx === currentIndex ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-transparent opacity-80'}">
-          ${c.logoUrl
-            ? `<img src="${c.logoUrl}" class="max-w-full max-h-full object-contain" loading="lazy" onerror="this.outerHTML='<span class=\\'text-slate-900 font-bold text-[12px] text-center break-words leading-tight\\'>${c.logoText}</span>'" />`
-            : `<span class="text-slate-900 font-bold text-[12px] text-center break-words leading-tight">${c.logoText}</span>`}
-        </button>`).join('');
-    }
-
-    function setFilter(f) {
-      panelFilter = f;
-      document.querySelectorAll('.ptab').forEach(b => {
-        const on = b.dataset.f === f;
-        b.className = 'ptab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ' +
-          (on ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-800 text-slate-300');
-      });
-      renderPanel();
-    }
-
-    function playByIndex(i) {
-      const c = channels[i];
-      if (!c) return;
-      currentIndex = i;
-      currentUrl = c.url;
-      modalChannelTitle.textContent = c.name;
-      renderPanel();
-      initStream(c.url);
-    }
-
-    function openPlayer(i, initialFilter) {
-      playerModal.classList.remove('hidden');
-      setTimeout(() => playerModal.classList.remove('opacity-0'), 10);
+    // ===================== DETAILS =====================
+    const detailsModal = document.getElementById('detailsModal');
+    function openDetails(i) {
+      const m = movies[i];
+      document.getElementById('dBanner').style.backgroundImage = m.poster ? `url('${m.poster}')` : '';
+      document.getElementById('dTitle').textContent = m.title;
+      document.getElementById('dRating').textContent = '★ ' + m.rating;
+      document.getElementById('dYear').textContent = m.year;
+      document.getElementById('dGenre').textContent = m.genre;
+      document.getElementById('dDesc').textContent = m.desc;
+      document.getElementById('dPlay').onclick = () => playMovie(m);
+      detailsModal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
-
-      // Warm up the video element immediately
-      video.preload = 'auto';
-      video.muted = true;
-      try { video.load(); } catch (e) {}
-
-      buildFilterTabs();
-      setFilter(initialFilter || 'all');
-      playByIndex(i);
       window.__androidGuard?.pushGuard();
+    }
+    function closeDetails() {
+      detailsModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // ===================== PLAYER =====================
+    const playerModal = document.getElementById('playerModal');
+    const vid = document.getElementById('moviePlayer');
+    const frame = document.getElementById('movieFrame');
+    const noSource = document.getElementById('noSource');
+    let hls = null;
+
+    function stopPlayer() {
+      if (hls) { hls.destroy(); hls = null; }
+      vid.pause(); vid.removeAttribute('src'); vid.load();
+      frame.src = '';
+      [vid, frame].forEach(e => e.classList.add('hidden'));
+      noSource.classList.add('hidden'); noSource.classList.remove('flex');
+    }
+
+    function playMovie(m) {
+      closeDetails();
+      stopPlayer();
+      playerModal.classList.remove('hidden');
+      window.__androidGuard?.pushGuard();
+      if (!m.url) { noSource.classList.remove('hidden'); noSource.classList.add('flex'); return; }
+      if (/\.m3u8(\?|$)/.test(m.url) && window.Hls && Hls.isSupported()) {
+        vid.classList.remove('hidden');
+        hls = new Hls(); hls.loadSource(m.url); hls.attachMedia(vid);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => vid.play().catch(() => {}));
+      } else if (/\.(mp4|webm)(\?|$)/.test(m.url)) {
+        vid.classList.remove('hidden'); vid.src = m.url; vid.play().catch(() => {});
+      } else {
+        frame.classList.remove('hidden'); frame.src = m.url;
+      }
     }
 
     function closePlayer() {
-      playerModal.classList.add('opacity-0');
-      setTimeout(() => {
-        playerModal.classList.add('hidden');
-        document.body.style.overflow = '';
-        if (hls) { hls.destroy(); hls = null; }
-        video.pause();
-        video.removeAttribute('src');
-        try { video.load(); } catch (e) {}
-        if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
-      }, 200);
+      stopPlayer();
+      playerModal.classList.add('hidden');
     }
-
-    function initStream(url) {
-      if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
-
-      loadingOverlay.classList.remove('hidden');
-      errorOverlay.classList.add('hidden');
-      if (hls) { hls.destroy(); hls = null; }
-
-      // Hide loader as soon as video truly starts playing
-      const onPlaying = () => {
-        if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
-        loadingOverlay.classList.add('hidden');
-        video.removeEventListener('playing', onPlaying);
-      };
-      video.addEventListener('playing', onPlaying);
-
-      // Fallback error after 12s
-      loadingTimer = setTimeout(() => {
-        loadingOverlay.classList.add('hidden');
-        showError('Stream is taking too long. Tap Retry.');
-      }, 12000);
-
-      if (Hls.isSupported()) {
-        hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: false,
-          startLevel: 0,
-          capLevelToPlayerSize: true,
-          abrEwmaDefaultEstimate: 300000,
-          maxBufferLength: 8,
-          maxMaxBufferLength: 20,
-          manifestLoadingTimeOut: 6000,
-          manifestLoadingMaxRetry: 1,
-          levelLoadingTimeOut: 6000,
-          levelLoadingMaxRetry: 1,
-          fragLoadingTimeOut: 10000,
-          fragLoadingMaxRetry: 2,
-          liveSyncDurationCount: 2,
-          liveMaxLatencyDurationCount: 5,
-          autoStartLoad: true,
-          startFragPrefetch: true
-        });
-        hls.loadSource(url);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => {});
-        });
-        hls.on(Hls.Events.ERROR, (e, data) => {
-          if (!data.fatal) return;
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            if (!hls.retried) { hls.retried = true; setTimeout(() => hls.startLoad(), 1000); }
-            else showError('Network error — stream unreachable.');
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            hls.recoverMediaError();
-          } else showError('Playback failed.');
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
-        video.onloadedmetadata = () => video.play().catch(() => {});
-        video.onerror = () => showError('Native playback failed.');
-      } else showError('HLS not supported.');
-    }
-
-    function showError(msg) {
-      if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
-      loadingOverlay.classList.add('hidden');
-      errorOverlay.classList.remove('hidden');
-      errorMessage.textContent = msg;
-    }
-    function retryStream() { if (currentUrl) initStream(currentUrl); }
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !playerModal.classList.contains('hidden')) closePlayer();
+      if (e.key !== 'Escape') return;
+      if (!playerModal.classList.contains('hidden')) closePlayer();
+      else if (!detailsModal.classList.contains('hidden')) closeDetails();
     });
 
-    function showView(v) {
-      document.querySelectorAll('.bnav-item[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === v));
-      document.getElementById('homeMain')?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function openCategory(catKey) {
-      const idx = channels.findIndex(c => c.categoryKey === catKey);
-      if (idx === -1) { openPlayer(0); return; }
-      document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
-      if (catKey === 'nepali') document.querySelector('[data-nav="live"]')?.classList.add('active');
-      openPlayer(idx, catKey);
-    }
+    setCat('all');
   </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"87327fcf53be41f08c37151b64e8f4d9","r":1,"spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
