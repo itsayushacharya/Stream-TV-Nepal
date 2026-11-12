@@ -55,6 +55,21 @@
       from { opacity: 0; transform: scale(0.92) translateY(10px); }
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
+
+    /* Player seek bar */
+    #seekBar { -webkit-appearance: none; appearance: none; }
+    #seekBar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px; border-radius: 9999px;
+      background: #3b82f6; cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.25);
+    }
+    #seekBar::-moz-range-thumb {
+      width: 14px; height: 14px; border: 0; border-radius: 9999px;
+      background: #3b82f6; cursor: pointer;
+    }
+    #movieFrame { background: #000; }
+    #moviePlayer { background: #000; }
   </style>
 </head>
 <body class="h-full antialiased selection:bg-brand-500 selection:text-white">
@@ -122,18 +137,90 @@
 
   <!-- PLAYER (fullscreen immersive) -->
   <div id="playerModal" class="fixed inset-0 z-[60] bg-black hidden">
+    <!-- Video / iframe layer -->
     <div class="absolute inset-0 flex items-center justify-center">
-      <video id="moviePlayer" class="w-full h-full hidden" controls autoplay playsinline></video>
-      <iframe id="movieFrame" class="w-full h-full hidden border-0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+      <video id="moviePlayer" class="w-full h-full hidden object-contain" playsinline webkit-playsinline></video>
+      <iframe id="movieFrame" class="w-full h-full hidden border-0" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
+
+      <!-- Loading spinner -->
+      <div id="playerLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 hidden">
+        <div class="w-12 h-12 rounded-full border-4 border-slate-700 border-t-brand-500 animate-spin"></div>
+        <p class="text-slate-400 text-xs mt-4">Loading…</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="playerError" class="absolute inset-0 flex-col items-center justify-center bg-black/90 z-10 hidden text-center px-6">
+        <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-3"></i>
+        <p class="text-white font-bold mb-1">Playback failed</p>
+        <p id="playerErrorMsg" class="text-slate-400 text-sm mb-5"></p>
+        <button onclick="retryPlay()" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold px-6 py-2.5 rounded-full inline-flex items-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i> Retry
+        </button>
+      </div>
+
+      <!-- No source state -->
       <div id="noSource" class="hidden flex-col items-center text-center p-6">
         <i class="fa-solid fa-film text-5xl text-slate-600 mb-3"></i>
         <p class="text-white font-bold text-lg">Not available</p>
+        <p class="text-slate-500 text-sm mt-1">This title has no stream source yet.</p>
       </div>
     </div>
-    <button onclick="closePlayer()" class="absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white"
-      style="top: calc(env(safe-area-inset-top) + 12px);">
-      <i class="fa-solid fa-arrow-left"></i>
-    </button>
+
+    <!-- Top gradient bar + back button -->
+    <div class="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent pb-10 pointer-events-none">
+      <div class="flex items-center gap-3 px-4 pointer-events-auto"
+           style="padding-top: calc(env(safe-area-inset-top) + 12px);">
+        <button onclick="closePlayer()" class="w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white active:scale-90 transition">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <p id="playerTitle" class="text-white font-bold text-sm truncate flex-1"></p>
+        <button onclick="toggleFullscreen()" class="w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center text-white active:scale-90 transition">
+          <i id="fsIcon" class="fa-solid fa-expand"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center tap-to-play/pause indicator (video only) -->
+    <div id="tapZone" class="absolute inset-0 z-[15] hidden"></div>
+    <div id="centerIcon" class="absolute inset-0 flex items-center justify-center pointer-events-none z-[16] opacity-0 transition-opacity duration-200">
+      <div class="w-16 h-16 rounded-full bg-black/60 backdrop-blur flex items-center justify-center">
+        <i id="centerIconGlyph" class="fa-solid fa-play text-white text-2xl"></i>
+      </div>
+    </div>
+
+    <!-- Bottom gradient + controls (video only) -->
+    <div id="videoControls" class="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 to-transparent pt-16 pb-4 px-4 hidden"
+         style="padding-bottom: calc(env(safe-area-inset-bottom) + 12px);">
+      <!-- Seek bar -->
+      <div class="flex items-center gap-3 mb-3 text-[11px] text-slate-300 font-mono">
+        <span id="curTime">0:00</span>
+        <input id="seekBar" type="range" min="0" max="100" value="0" step="0.1"
+               class="flex-1 h-1.5 rounded-full appearance-none bg-white/20 accent-brand-500 cursor-pointer">
+        <span id="durTime">0:00</span>
+      </div>
+      <!-- Buttons row -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <button onclick="togglePlay()" class="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition">
+            <i id="playIcon" class="fa-solid fa-play text-lg"></i>
+          </button>
+          <button onclick="skip(-10)" class="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition">
+            <i class="fa-solid fa-rotate-left text-base"></i>
+          </button>
+          <button onclick="skip(10)" class="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition">
+            <i class="fa-solid fa-rotate-right text-base"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="toggleMute()" class="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition">
+            <i id="volIcon" class="fa-solid fa-volume-high text-base"></i>
+          </button>
+          <button onclick="cycleRate()" class="px-3 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold bg-white/10 active:scale-90 transition">
+            <span id="rateLabel">1×</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- BOTTOM NAV -->
@@ -368,39 +455,230 @@
 
     // ===================== PLAYER =====================
     const playerModal = document.getElementById('playerModal');
-    const vid = document.getElementById('moviePlayer');
-    const frame = document.getElementById('movieFrame');
-    const noSource = document.getElementById('noSource');
+    const vid         = document.getElementById('moviePlayer');
+    const frame       = document.getElementById('movieFrame');
+    const loader      = document.getElementById('playerLoader');
+    const errBox      = document.getElementById('playerError');
+    const errMsg      = document.getElementById('playerErrorMsg');
+    const noSource    = document.getElementById('noSource');
+    const tapZone     = document.getElementById('tapZone');
+    const centerIcon  = document.getElementById('centerIcon');
+    const centerGlyph = document.getElementById('centerIconGlyph');
+    const controls    = document.getElementById('videoControls');
+    const seekBar     = document.getElementById('seekBar');
+    const curTimeEl   = document.getElementById('curTime');
+    const durTimeEl   = document.getElementById('durTime');
+    const playIcon    = document.getElementById('playIcon');
+    const volIcon     = document.getElementById('volIcon');
+    const rateLabel   = document.getElementById('rateLabel');
+    const playerTitle = document.getElementById('playerTitle');
+    const fsIcon      = document.getElementById('fsIcon');
+
     let hls = null;
+    let currentMovie = null;
+    let controlsTimer = null;
+    let centerIconTimer = null;
+    const rates = [1, 1.25, 1.5, 2, 0.5];
+    let rateIdx = 0;
+
+    const fmt = s => {
+      if (!isFinite(s)) return '0:00';
+      const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+      return `${m}:${sec.toString().padStart(2, '0')}`;
+    };
 
     function stopPlayer() {
       if (hls) { hls.destroy(); hls = null; }
       vid.pause(); vid.removeAttribute('src'); vid.load();
       frame.src = '';
-      [vid, frame].forEach(e => e.classList.add('hidden'));
+      [vid, frame, loader, tapZone, controls, centerIcon].forEach(e => e.classList.add('hidden'));
+      errBox.classList.add('hidden'); errBox.classList.remove('flex');
       noSource.classList.add('hidden'); noSource.classList.remove('flex');
+      document.body.style.overflow = '';
     }
 
-    function playMovie(m) {
-      closeDetails();
-      stopPlayer();
+    function showErr(msg) {
+      loader.classList.add('hidden');
+      errMsg.textContent = msg || 'Something went wrong.';
+      errBox.classList.remove('hidden'); errBox.classList.add('flex');
+    }
+
+    function retryPlay() {
+      errBox.classList.add('hidden'); errBox.classList.remove('flex');
+      if (currentMovie) playMovie(currentMovie, true);
+    }
+
+    function playMovie(m, keepOpen) {
+      currentMovie = m;
+      if (!keepOpen) { closeDetails(); stopPlayer(); }
       playerModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
       window.__androidGuard?.pushGuard();
-      if (!m.url) { noSource.classList.remove('hidden'); noSource.classList.add('flex'); return; }
-      if (/\.m3u8(\?|$)/.test(m.url) && window.Hls && Hls.isSupported()) {
+      playerTitle.textContent = m.title || '';
+      loader.classList.remove('hidden');
+      errBox.classList.add('hidden'); errBox.classList.remove('flex');
+      noSource.classList.add('hidden'); noSource.classList.remove('flex');
+
+      if (!m.url) {
+        loader.classList.add('hidden');
+        noSource.classList.remove('hidden'); noSource.classList.add('flex');
+        return;
+      }
+
+      const isHls = /\.m3u8(\?|$)/.test(m.url);
+      const isMp4 = /\.(mp4|webm|ogg|mov)(\?|$)/.test(m.url);
+
+      if (isHls || isMp4) {
         vid.classList.remove('hidden');
-        hls = new Hls(); hls.loadSource(m.url); hls.attachMedia(vid);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => vid.play().catch(() => {}));
-      } else if (/\.(mp4|webm)(\?|$)/.test(m.url)) {
-        vid.classList.remove('hidden'); vid.src = m.url; vid.play().catch(() => {});
+        tapZone.classList.remove('hidden');
+        controls.classList.remove('hidden');
+        setupVideoControls();
+
+        if (isHls) {
+          if (window.Hls && Hls.isSupported()) {
+            hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+            hls.loadSource(m.url);
+            hls.attachMedia(vid);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => vid.play().catch(() => {}));
+            hls.on(Hls.Events.ERROR, (_, data) => {
+              if (data.fatal) {
+                showErr(`Stream error: ${data.type}${data.details ? ' (' + data.details + ')' : ''}`);
+              }
+            });
+          } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+            vid.src = m.url;
+            vid.play().catch(() => {});
+          } else {
+            showErr('HLS not supported in this browser.');
+          }
+        } else {
+          vid.src = m.url;
+          vid.play().catch(() => {});
+        }
+        vid.onloadedmetadata = () => {
+          loader.classList.add('hidden');
+          durTimeEl.textContent = fmt(vid.duration);
+        };
+        vid.oncanplay = () => loader.classList.add('hidden');
+        vid.onwaiting = () => { loader.classList.remove('hidden'); };
+        vid.onplaying = () => { loader.classList.add('hidden'); updatePlayIcon(); };
+        vid.onpause = updatePlayIcon;
+        vid.onerror = () => showErr('Unable to load video.');
+        vid.ontimeupdate = () => {
+          if (!vid.duration) return;
+          seekBar.value = (vid.currentTime / vid.duration) * 100;
+          curTimeEl.textContent = fmt(vid.currentTime);
+        };
       } else {
-        frame.classList.remove('hidden'); frame.src = m.url;
+        // Embed iframe
+        frame.classList.remove('hidden');
+        frame.onload = () => loader.classList.add('hidden');
+        frame.src = m.url;
+        setTimeout(() => loader.classList.add('hidden'), 4000);
       }
     }
+
+    function setupVideoControls() {
+      playIcon.className = 'fa-solid fa-pause text-lg';
+
+      seekBar.oninput = () => {
+        if (vid.duration) vid.currentTime = (seekBar.value / 100) * vid.duration;
+        curTimeEl.textContent = fmt(vid.currentTime);
+      };
+
+      tapZone.onclick = () => {
+        if (controls.classList.contains('hidden')) {
+          showControls();
+        } else {
+          togglePlay();
+        }
+      };
+
+      vid.onplaying = () => { updatePlayIcon(); hideControlsSoon(); };
+      vid.onpause  = () => { updatePlayIcon(); showControls(); };
+
+      vid.onclick = () => flashCenter(vid.paused ? 'play' : 'pause');
+      showControls();
+    }
+
+    function updatePlayIcon() {
+      playIcon.className = (vid.paused ? 'fa-solid fa-play' : 'fa-solid fa-pause') + ' text-lg';
+      volIcon.className = (vid.muted || vid.volume === 0 ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high') + ' text-base';
+    }
+
+    function togglePlay() {
+      if (vid.paused) { vid.play().catch(() => {}); flashCenter('play'); }
+      else { vid.pause(); flashCenter('pause'); }
+      updatePlayIcon();
+    }
+
+    function skip(sec) {
+      if (!vid.duration) return;
+      vid.currentTime = Math.max(0, Math.min(vid.duration, vid.currentTime + sec));
+      flashCenter(sec > 0 ? 'forward' : 'backward');
+    }
+
+    function toggleMute() {
+      vid.muted = !vid.muted;
+      updatePlayIcon();
+      flashCenter(vid.muted ? 'mute' : 'unmute');
+    }
+
+    function cycleRate() {
+      rateIdx = (rateIdx + 1) % rates.length;
+      vid.playbackRate = rates[rateIdx];
+      rateLabel.textContent = rates[rateIdx] + '×';
+      flashCenter('rate');
+    }
+
+    function showControls() {
+      controls.classList.remove('hidden');
+      clearTimeout(controlsTimer);
+      if (!vid.paused) controlsTimer = setTimeout(hideControls, 3500);
+    }
+    function hideControls() {
+      if (!vid.paused) controls.classList.add('hidden');
+    }
+    function hideControlsSoon() {
+      clearTimeout(controlsTimer);
+      controlsTimer = setTimeout(hideControls, 3500);
+    }
+
+    function flashCenter(kind) {
+      const glyphs = {
+        play:     'fa-play',
+        pause:    'fa-pause',
+        forward:  'fa-forward',
+        backward: 'fa-backward',
+        mute:     'fa-volume-xmark',
+        unmute:   'fa-volume-high',
+        rate:     'fa-gauge-high'
+      };
+      centerGlyph.className = 'fa-solid ' + glyphs[kind] + ' text-white text-2xl';
+      centerIcon.style.opacity = '1';
+      clearTimeout(centerIconTimer);
+      centerIconTimer = setTimeout(() => centerIcon.style.opacity = '0', 600);
+    }
+
+    function toggleFullscreen() {
+      const el = playerModal;
+      if (!document.fullscreenElement) {
+        (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen)?.call(el)
+          .catch(() => {});
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+    document.addEventListener('fullscreenchange', () => {
+      fsIcon.className = document.fullscreenElement
+        ? 'fa-solid fa-compress'
+        : 'fa-solid fa-expand';
+    });
 
     function closePlayer() {
       stopPlayer();
       playerModal.classList.add('hidden');
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     }
 
     document.addEventListener('keydown', e => {
@@ -411,7 +689,6 @@
 
     setCat('all');
   </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"87327fcf53be41f08c37151b64e8f4d9","r":1,"spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"87327fcf53be41f08c37151b64e8f4d9","r":1,"spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
